@@ -319,12 +319,19 @@ function renderProjectDetail(locations, locationModels) {
     ? `
       <div class="project-summary">
         <strong title="${escapeHtml(location.path)}">${escapeHtml(projectNameFromPath(location.path))}</strong>
-        <span>${integer.format(location.requests)} requests · ${formatAiu(location.total_nano_aiu)} AIU</span>
+        <span>${integer.format(location.requests)} requests · ${formatTokens(location.tokens)} tokens · ${formatAiu(location.total_nano_aiu)} AIU</span>
+      </div>
+      <div class="project-detail-grid">
+        <div><span>Total tokens</span><b>${formatTokens(location.tokens)}</b></div>
+        <div><span>Input tokens</span><b>${formatTokens(location.input_tokens)}</b></div>
+        <div><span>Output tokens</span><b>${formatTokens(location.output_tokens)}</b></div>
+        <div><span>Reasoning tokens</span><b>${formatTokens(location.reasoning_tokens)}</b></div>
+        <div><span>Cache reads / writes</span><b>${formatTokens(location.cache_read_tokens)} / ${formatTokens(location.cache_write_tokens)}</b></div>
       </div>
       ${rows.map((row) => `
         <div class="project-model-row">
           <span>${escapeHtml(row.model)}</span>
-          <b>${integer.format(row.requests)} · ${formatAiu(row.total_nano_aiu)} AIU</b>
+          <b>${integer.format(row.requests)} · ${formatTokens(row.tokens)} tokens · ${formatAiu(row.total_nano_aiu)} AIU</b>
         </div>
       `).join("")}
     `

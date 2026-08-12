@@ -63,12 +63,16 @@ class DashboardDataTests(unittest.TestCase):
         self.assertEqual(metrics["models"][0]["cache_write_tokens"], 0)
         self.assertEqual(metrics["daily"][0]["cache_read_tokens"], 50)
         self.assertEqual(metrics["locations"][0]["path"], "/tmp/example")
+        self.assertEqual(metrics["locations"][0]["tokens"], 125)
+        self.assertEqual(metrics["locations"][0]["reasoning_tokens"], 5)
         self.assertEqual(metrics["sessions"][0]["models"], "test-model")
         self.assertEqual(metrics["sessions"][0]["tokens"], 125)
         self.assertEqual(metrics["sessions"][0]["tool_calls"], 0)
         self.assertEqual(metrics["sessions"][0]["active_days"], 1)
         self.assertEqual(metrics["sessions"][0]["model_metrics"][0]["model"], "test-model")
         self.assertEqual(metrics["sessions"][0]["model_metrics"][0]["tokens"], 125)
+        self.assertEqual(metrics["location_models"][0]["tokens"], 125)
+        self.assertEqual(metrics["location_models"][0]["input_tokens"], 100)
         self.assertEqual(metrics["intent_breakdown"][0]["intent"], "coding")
 
     def test_range_parser(self):

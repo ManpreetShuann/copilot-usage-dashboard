@@ -412,6 +412,11 @@ select:focus-visible, .secondary-button:focus-visible, .nav-tab:focus-visible {
 .project-summary { align-items: baseline; border-bottom: 1px solid var(--border); display: flex; gap: 12px; justify-content: space-between; padding-bottom: 12px; }
 .project-summary strong { font-size: 15px; }
 .project-summary span { color: var(--muted); font-size: 11px; }
+.project-detail-grid { display: grid; gap: 10px 18px; grid-template-columns: repeat(3, 1fr); }
+.project-detail-grid div { min-width: 0; }
+.project-detail-grid span, .project-detail-grid b { display: block; }
+.project-detail-grid span { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.project-detail-grid b { color: var(--text); font-size: 12px; margin-top: 3px; }
 .project-model-row {
   align-items: center;
   background: var(--panel-raised);
@@ -582,6 +587,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--mauve) 6%, transparent); }
   .donut { flex-basis: 145px; height: 145px; width: 145px; }
   .donut::before { height: 94px; width: 94px; }
   .card strong { font-size: 20px; }
+  .project-detail-grid { grid-template-columns: 1fr 1fr; }
   .session-detail-grid { grid-template-columns: 1fr 1fr; }
   .intent-row { grid-template-columns: 110px minmax(70px, 1fr) 46px; }
   .session-model-table { overflow-x: auto; }

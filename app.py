@@ -315,6 +315,14 @@ def query_metrics(db_path: Path, days: RangeValue) -> dict[str, Any]:
                 COUNT(DISTINCT u.session_id) AS sessions,
                 COALESCE(SUM(u.input_tokens), 0) AS input_tokens,
                 COALESCE(SUM(u.output_tokens), 0) AS output_tokens,
+                COALESCE(SUM(u.reasoning_tokens), 0) AS reasoning_tokens,
+                COALESCE(SUM(u.cache_read_tokens), 0) AS cache_read_tokens,
+                COALESCE(SUM(u.cache_write_tokens), 0) AS cache_write_tokens,
+                COALESCE(SUM(
+                    COALESCE(u.input_tokens, 0)
+                    + COALESCE(u.output_tokens, 0)
+                    + COALESCE(u.reasoning_tokens, 0)
+                ), 0) AS tokens,
                 COALESCE(SUM(u.total_nano_aiu), 0) AS total_nano_aiu
             FROM assistant_usage_events AS u
             JOIN sessions AS s ON s.id = u.session_id
@@ -332,6 +340,16 @@ def query_metrics(db_path: Path, days: RangeValue) -> dict[str, Any]:
                 COALESCE(NULLIF(s.cwd, ''), NULLIF(s.repository, ''), 'Unknown') AS path,
                 u.model AS model,
                 COUNT(*) AS requests,
+                COALESCE(SUM(u.input_tokens), 0) AS input_tokens,
+                COALESCE(SUM(u.output_tokens), 0) AS output_tokens,
+                COALESCE(SUM(u.reasoning_tokens), 0) AS reasoning_tokens,
+                COALESCE(SUM(u.cache_read_tokens), 0) AS cache_read_tokens,
+                COALESCE(SUM(u.cache_write_tokens), 0) AS cache_write_tokens,
+                COALESCE(SUM(
+                    COALESCE(u.input_tokens, 0)
+                    + COALESCE(u.output_tokens, 0)
+                    + COALESCE(u.reasoning_tokens, 0)
+                ), 0) AS tokens,
                 COALESCE(SUM(u.total_nano_aiu), 0) AS total_nano_aiu
             FROM assistant_usage_events AS u
             JOIN sessions AS s ON s.id = u.session_id
