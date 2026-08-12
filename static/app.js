@@ -163,6 +163,15 @@ function renderInsights(summary, models) {
     formatTokens(totalTokens(summary) + Number(summary.cache_read_tokens || 0)),
     "all tokens",
   );
+  renderDonut(
+    "model-token-donut",
+    "model-token-legend",
+    models
+      .map((model) => ({ label: model.model, value: totalTokens(model) }))
+      .sort((left, right) => right.value - left.value),
+    formatTokens(totalTokens(summary)),
+    "tokens",
+  );
 }
 
 function renderModelCards(models, summary) {

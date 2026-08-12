@@ -255,7 +255,7 @@ select:focus-visible, .secondary-button:focus-visible, .nav-tab:focus-visible {
 .section-heading p { font-size: 12px; margin-bottom: 0; }
 
 /* ---------- Donuts ---------- */
-.insight-grid { display: grid; gap: 18px; grid-template-columns: repeat(2, 1fr); }
+.insight-grid { display: grid; gap: 18px; grid-template-columns: repeat(3, 1fr); }
 .donut-layout { align-items: center; display: flex; gap: 30px; min-height: 190px; }
 .donut {
   align-items: center;
@@ -473,7 +473,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--mauve) 6%, transparent); }
   .metric-strip { grid-template-columns: repeat(2, 1fr); }
   .performance-stats { grid-template-columns: 1fr 1fr; }
   .effort-layout { grid-template-columns: 1fr; }
-  .insight-grid { grid-template-columns: 1fr; }
+  .insight-grid { grid-template-columns: repeat(2, 1fr); }
   .grid { grid-template-columns: 1fr; }
 }
 
@@ -486,6 +486,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--mauve) 6%, transparent); }
   .performance-stats { grid-template-columns: 1fr; }
   .header .secondary-button { align-self: stretch; justify-content: center; }
   .model-cards { grid-template-columns: 1fr; }
+  .insight-grid { grid-template-columns: 1fr; }
   .donut-layout { gap: 18px; }
   .donut { flex-basis: 145px; height: 145px; width: 145px; }
   .donut::before { height: 94px; width: 94px; }
