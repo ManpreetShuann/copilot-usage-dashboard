@@ -488,6 +488,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             ".css": "text/css; charset=utf-8",
             ".html": "text/html; charset=utf-8",
             ".js": "text/javascript; charset=utf-8",
+            ".svg": "image/svg+xml",
         }.get(candidate.suffix, "application/octet-stream")
         data = candidate.read_bytes()
         self.send_response(200)

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">Copilot metrics dashboard</title>
+  <desc id="desc">A dashboard tile with usage bars and a copilot sparkle.</desc>
+  <defs>
+    <linearGradient id="background" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#bb9af7"/>
+      <stop offset="1" stop-color="#2ac3de"/>
+    </linearGradient>
+    <linearGradient id="bars" x1="18" y1="45" x2="44" y2="22" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9ece6a"/>
+      <stop offset="1" stop-color="#7dcfff"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="#16161e"/>
+  <rect x="7" y="7" width="50" height="50" rx="13" fill="url(#background)" opacity=".2"/>
+  <path d="M17 45V31m9 14V25m9 20V35m9 10V20" stroke="url(#bars)" stroke-width="6" stroke-linecap="round"/>
+  <path d="m45 10 1.8 5.2L52 17l-5.2 1.8L45 24l-1.8-5.2L38 17l5.2-1.8L45 10Z" fill="#e0af68"/>
+  <circle cx="17" cy="49" r="2" fill="#c0caf5"/>
+  <circle cx="44" cy="49" r="2" fill="#c0caf5"/>
+</svg>
