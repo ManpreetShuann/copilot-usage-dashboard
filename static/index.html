@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Copilot Usage Dashboard</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="header">
+      <div>
+        <p class="eyebrow">AI LENS · LOCAL TELEMETRY</p>
+        <h1>Copilot usage intelligence</h1>
+        <p class="muted">Understand which models, projects, and token types drive your usage.</p>
+      </div>
+      <div class="header-controls">
+        <label class="range-control">
+          <span>Window</span>
+          <select id="range">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="all">All available</option>
+          </select>
+        </label>
+        <button id="export" class="secondary-button" type="button">Export CSV</button>
+      </div>
+    </header>
+
+    <p id="error" class="error" hidden></p>
+
+    <nav class="nav-tabs" aria-label="Dashboard views">
+      <button class="nav-tab active" data-view-target="overview" type="button">Overview</button>
+      <button class="nav-tab" data-view-target="models" type="button">Models</button>
+      <button class="nav-tab" data-view-target="projects" type="button">Projects</button>
+      <button class="nav-tab" data-view-target="performance" type="button">Performance</button>
+      <button class="nav-tab" data-view-target="sessions" type="button">Sessions</button>
+    </nav>
+
+    <section id="summary" class="cards" data-view="overview" aria-label="Summary metrics"></section>
+    <section id="advanced-metrics" class="metric-strip" data-view="overview" aria-label="Advanced metrics"></section>
+
+    <section class="insight-grid" data-view="overview">
+      <div class="panel">
+        <div class="panel-heading">
+          <div>
+            <h2>Model share</h2>
+            <p class="muted">Usage-unit distribution by model.</p>
+          </div>
+        </div>
+        <div class="donut-layout">
+          <div id="model-donut" class="donut"><div class="donut-center"></div></div>
+          <div id="model-legend" class="legend"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-heading">
+          <div>
+            <h2>Token composition</h2>
+            <p class="muted">Cache reads are shown separately from request tokens.</p>
+          </div>
+        </div>
+        <div class="donut-layout">
+          <div id="token-donut" class="donut"><div class="donut-center"></div></div>
+          <div id="token-legend" class="legend"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel trend-panel" data-view="overview">
+      <div class="panel-heading">
+        <div>
+          <h2>Usage trends</h2>
+          <p id="trend-caption" class="muted">Daily activity in the selected window.</p>
+        </div>
+        <label class="metric-control">
+          <span>Measure</span>
+          <select id="trend-metric">
+            <option value="aiu" selected>AIU usage</option>
+            <option value="tokens">Tokens</option>
+            <option value="requests">Requests</option>
+          </select>
+        </label>
+      </div>
+      <div id="trend-chart" class="trend-chart"></div>
+    </section>
+
+    <section class="grid" data-view="performance">
+      <div class="panel">
+        <div class="panel-heading">
+          <div>
+            <h2>Activity by hour</h2>
+            <p class="muted">When usage is concentrated during the day.</p>
+          </div>
+        </div>
+        <div id="hourly-heatmap" class="heatmap"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-heading">
+          <div>
+            <h2>Performance and reliability</h2>
+            <p class="muted">Response time, TTFT, statusline-style output speed, completion types, and filtered requests.</p>
+          </div>
+        </div>
+        <div id="performance" class="performance"></div>
+      </div>
+    </section>
+
+    <section data-view="models">
+      <div class="section-heading">
+        <div>
+          <h2>Model intelligence</h2>
+          <p class="muted">A closer look at how each model is contributing.</p>
+        </div>
+      </div>
+      <div id="model-cards" class="model-cards"></div>
+    </section>
+
+    <section class="panel" data-view="projects">
+      <div class="panel-heading">
+        <div>
+          <h2>Project drill-down</h2>
+          <p class="muted">Model mix for the selected project.</p>
+        </div>
+        <label class="metric-control">
+          <span>Project</span>
+          <select id="project-select"></select>
+        </label>
+      </div>
+      <div id="project-detail" class="project-detail"></div>
+    </section>
+
+    <section class="panel" data-view="sessions">
+      <div class="panel-heading">
+        <div>
+          <h2>Session insights</h2>
+          <p class="muted">Highest-usage sessions in this window.</p>
+        </div>
+      </div>
+      <div id="sessions" class="session-list"></div>
+    </section>
+
+    <section class="panel" data-view="models">
+      <div class="panel-heading">
+        <div>
+          <h2>Reasoning effort breakdown</h2>
+          <p class="muted">AIU share and performance by configured reasoning effort.</p>
+        </div>
+      </div>
+      <div class="effort-layout">
+        <div class="donut-layout">
+          <div id="effort-donut" class="donut"><div class="donut-center"></div></div>
+          <div id="effort-legend" class="legend"></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Effort</th>
+                <th>Requests</th>
+                <th>Reasoning</th>
+                <th>AIU</th>
+                <th>Avg response</th>
+              </tr>
+            </thead>
+            <tbody id="reasoning-efforts"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" data-view="models">
+      <div class="panel-heading">
+        <div>
+          <h2>Usage by model</h2>
+          <p class="muted">Detailed request, token, cache, and latency metrics.</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Requests</th>
+              <th>Input</th>
+              <th>Output</th>
+              <th>Reasoning</th>
+              <th>Cache read</th>
+              <th>AIU</th>
+              <th>Avg latency</th>
+              <th>Gen speed</th>
+            </tr>
+          </thead>
+          <tbody id="models"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel" data-view="overview">
+      <div class="panel-heading">
+        <div>
+          <h2>Daily token volume</h2>
+          <p class="muted">Input, output, and reasoning tokens by UTC date.</p>
+        </div>
+      </div>
+      <div id="daily" class="chart"></div>
+    </section>
+
+    <section class="panel" data-view="projects">
+      <div class="panel-heading">
+        <div>
+          <h2>Usage by project</h2>
+          <p class="muted">Project names from local working directories.</p>
+        </div>
+      </div>
+      <div id="locations" class="repository-list"></div>
+    </section>
+
+    <footer class="footer">
+      <span id="updated"></span>
+      <span>Data stays on this machine.</span>
+    </footer>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
