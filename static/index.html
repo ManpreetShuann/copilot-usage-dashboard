@@ -16,12 +16,12 @@
       </div>
       <div class="header-controls">
         <label class="range-control">
-          <span>Window</span>
+          <span>Timeframe</span>
           <select id="range">
             <option value="7">Last 7 days</option>
-            <option value="30" selected>Last 30 days</option>
+            <option value="30">Last 30 days</option>
             <option value="90">Last 90 days</option>
-            <option value="month">Current month</option>
+            <option value="month" selected>Current month</option>
             <option value="all">All available</option>
           </select>
         </label>
@@ -85,7 +85,7 @@
       <div class="panel-heading">
         <div>
           <h2>Usage trends</h2>
-          <p id="trend-caption" class="muted">Daily activity in the selected window.</p>
+          <p id="trend-caption" class="muted">Daily activity in the selected timeframe.</p>
         </div>
         <label class="metric-control">
           <span>Measure</span>
@@ -148,7 +148,7 @@
       <div class="panel-heading">
         <div>
           <h2>Session insights</h2>
-          <p class="muted">Highest-usage sessions in this window.</p>
+          <p class="muted">Highest-usage sessions in this timeframe.</p>
         </div>
         <label class="session-search">
           <span>Search</span>
@@ -238,7 +238,7 @@
       <div class="panel-heading">
         <div>
           <h2>Work intent</h2>
-          <p class="muted">Heuristic classification of user turns in the selected window.</p>
+          <p class="muted">Heuristic classification of user turns in the selected timeframe.</p>
         </div>
       </div>
       <div id="intent-breakdown" class="intent-breakdown"></div>

@@ -99,10 +99,10 @@ function renderAdvancedMetrics(summary, previous, rangeDays) {
     ? (Number(summary.total_nano_aiu || 0) / forecastDays) * 30
     : null;
   const cards = [
-    ["Period change", previous ? percentChange(summary.total_nano_aiu, previous.total_nano_aiu) : "n/a", "AIU vs previous window"],
+    ["Period change", previous ? percentChange(summary.total_nano_aiu, previous.total_nano_aiu) : "n/a", "AIU vs previous timeframe"],
     ["Cache efficiency", `${formatNumber(cacheRate)}%`, "cache reads / input + cache"],
     ["AIU per request", formatAiu(aiuPerRequest), "average request intensity"],
-    ["30-day projection", forecast === null ? "n/a" : `${formatAiu(forecast)} AIU`, "based on selected window"],
+    ["30-day projection", forecast === null ? "n/a" : `${formatAiu(forecast)} AIU`, "based on selected timeframe"],
   ];
   document.querySelector("#advanced-metrics").innerHTML = cards.map(([label, value, hint]) => `
     <article class="metric-card">
@@ -120,7 +120,7 @@ function renderDonut(donutId, legendId, segments, centerValue, centerLabel) {
   if (!total) {
     donut.style.background = "var(--panel-raised)";
     donut.querySelector(".donut-center").innerHTML = `<strong>0</strong><span>${centerLabel}</span>`;
-    legend.innerHTML = '<p class="muted empty">No usage data in this window.</p>';
+    legend.innerHTML = '<p class="muted empty">No usage data in this timeframe.</p>';
     return;
   }
 
@@ -188,7 +188,7 @@ function renderIntentBreakdown(intents) {
         <b>${formatNumber(item.percentage)}%</b>
       </div>
     `).join("")
-    : '<p class="muted empty">No user-message data is available for this window.</p>';
+    : '<p class="muted empty">No user-message data is available for this timeframe.</p>';
 }
 
 function formatIntentLabel(intent) {
@@ -219,7 +219,7 @@ function renderModelCards(models, summary) {
         </article>
       `;
     }).join("")
-    : '<p class="muted empty">No model data in this window.</p>';
+    : '<p class="muted empty">No model data in this timeframe.</p>';
 }
 
 function renderReasoningEfforts(efforts) {
@@ -240,7 +240,7 @@ function renderReasoningEfforts(efforts) {
         <td>${formatNumber(effort.avg_duration_ms)} ms</td>
       </tr>
     `).join("")
-    : '<tr><td colspan="5" class="empty">No reasoning-effort data in this window.</td></tr>';
+    : '<tr><td colspan="5" class="empty">No reasoning-effort data in this timeframe.</td></tr>';
 }
 
 function renderModels(models) {
@@ -258,7 +258,7 @@ function renderModels(models) {
         <td>${formatNumber(model.output_generation_speed_tps)} tokens/s</td>
       </tr>
     `).join("")
-    : emptyRow("No usage data in this window.");
+    : emptyRow("No usage data in this timeframe.");
 }
 
 function renderHourly(hourly) {
@@ -328,7 +328,7 @@ function renderProjectDetail(locations, locationModels) {
         </div>
       `).join("")}
     `
-    : '<p class="muted empty">No project data in this window.</p>';
+    : '<p class="muted empty">No project data in this timeframe.</p>';
 }
 
 function renderSessions(sessions, query = sessionSearch.value) {
@@ -392,7 +392,7 @@ function renderSessions(sessions, query = sessionSearch.value) {
         </div>
       </details>
     `).join("")
-    : `<p class="muted empty">${normalizedQuery ? "No matching sessions." : "No session data in this window."}</p>`;
+    : `<p class="muted empty">${normalizedQuery ? "No matching sessions." : "No session data in this timeframe."}</p>`;
 }
 
 function formatDate(value) {
@@ -405,8 +405,8 @@ function renderDaily(daily) {
   const chart = document.querySelector("#trend-chart");
   const dailyBars = document.querySelector("#daily");
   if (!daily.length) {
-    chart.innerHTML = '<p class="muted empty">No usage data in this window.</p>';
-    dailyBars.innerHTML = '<p class="muted empty">No usage data in this window.</p>';
+    chart.innerHTML = '<p class="muted empty">No usage data in this timeframe.</p>';
+    dailyBars.innerHTML = '<p class="muted empty">No usage data in this timeframe.</p>';
     return;
   }
   const dailyMax = niceTokenScaleMax(Math.max(...daily.map(totalTokens), 1));
@@ -486,7 +486,7 @@ function renderDaily(daily) {
     </svg>
   `;
   document.querySelector("#trend-caption").textContent =
-    `${metricLabel(metric)} per day in the selected window. Hover points for details.`;
+    `${metricLabel(metric)} per day in the selected timeframe. Hover points for details.`;
 }
 
 function renderLocations(locations) {
@@ -504,7 +504,7 @@ function renderLocations(locations) {
         </div>
       `;
     }).join("")
-    : '<p class="muted empty">No path data in this window.</p>';
+    : '<p class="muted empty">No path data in this timeframe.</p>';
 }
 
 function metricLabel(metric) {

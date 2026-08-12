@@ -46,7 +46,7 @@ def get_connection(db_path: Path) -> sqlite3.Connection:
 
 def range_days_from_query(value: str | None) -> RangeValue:
     if value in (None, ""):
-        return 30
+        return "month"
     if value == "all":
         return 0
     if value == "month":
