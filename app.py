@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parent
 STATIC_DIR = ROOT / "static"
 DEFAULT_DB = Path.home() / ".copilot" / "session-store.db"
 ALLOWED_RANGES = {7, 30, 90, 0}
+RangeValue = int | str
 DAILY_TOTAL_FIELDS = (
     "requests",
     "input_tokens",
@@ -42,17 +43,19 @@ def get_connection(db_path: Path) -> sqlite3.Connection:
     return connection
 
 
-def range_days_from_query(value: str | None) -> int:
+def range_days_from_query(value: str | None) -> RangeValue:
     if value in (None, ""):
         return 30
     if value == "all":
         return 0
+    if value == "month":
+        return "month"
     try:
         days = int(value)
     except ValueError as error:
-        raise ValueError("range must be 7, 30, 90, or all") from error
+        raise ValueError("range must be 7, 30, 90, month, or all") from error
     if days not in ALLOWED_RANGES:
-        raise ValueError("range must be 7, 30, 90, or all")
+        raise ValueError("range must be 7, 30, 90, month, or all")
     return days
 
 
@@ -63,11 +66,15 @@ def since_value(days: int) -> str | None:
     return since.isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
-def period_filter(days: int, end: datetime | None = None) -> tuple[str, tuple[str, ...]]:
-    if days == 0:
+def period_filter(range_value: RangeValue, end: datetime | None = None) -> tuple[str, tuple[str, ...]]:
+    if range_value == 0:
         return "", ()
     period_end = end or datetime.now(timezone.utc)
-    period_start = period_end - timedelta(days=days)
+    period_start = (
+        period_end.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        if range_value == "month"
+        else period_end - timedelta(days=range_value)
+    )
     return (
         "WHERE created_at >= ? AND created_at < ?",
         (
@@ -75,6 +82,24 @@ def period_filter(days: int, end: datetime | None = None) -> tuple[str, tuple[st
             period_end.isoformat(timespec="milliseconds").replace("+00:00", "Z"),
         ),
     )
+
+
+def previous_period_filter(
+    range_value: RangeValue,
+    end: datetime,
+) -> tuple[str, tuple[str, ...]]:
+    if range_value == "month":
+        current_start = end.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        previous_end = current_start
+        previous_start = (current_start - timedelta(days=1)).replace(day=1)
+        return (
+            "WHERE created_at >= ? AND created_at < ?",
+            (
+                previous_start.isoformat(timespec="milliseconds").replace("+00:00", "Z"),
+                previous_end.isoformat(timespec="milliseconds").replace("+00:00", "Z"),
+            ),
+        )
+    return period_filter(range_value, end - timedelta(days=range_value)) if range_value else ("", ())
 
 
 def summary_query(
@@ -111,13 +136,16 @@ def summary_query(
     ).fetchone()
 
 
-def fill_daily_gaps(rows: list[sqlite3.Row], days: int, now: datetime) -> list[dict[str, Any]]:
+def fill_daily_gaps(rows: list[sqlite3.Row], range_value: RangeValue, now: datetime) -> list[dict[str, Any]]:
     if not rows:
         return []
 
     row_by_day = {row["day"]: dict(row) for row in rows}
-    if days:
-        first_day = (now - timedelta(days=days)).date()
+    if range_value == "month":
+        first_day = now.replace(day=1).date()
+        last_day = now.date()
+    elif range_value:
+        first_day = (now - timedelta(days=range_value)).date()
         last_day = now.date()
     else:
         dates = [date.fromisoformat(day) for day in row_by_day]
@@ -136,14 +164,10 @@ def fill_daily_gaps(rows: list[sqlite3.Row], days: int, now: datetime) -> list[d
     return filled
 
 
-def query_metrics(db_path: Path, days: int) -> dict[str, Any]:
+def query_metrics(db_path: Path, days: RangeValue) -> dict[str, Any]:
     now = datetime.now(timezone.utc)
     where, params = period_filter(days, now)
-    previous_where, previous_params = (
-        period_filter(days, now - timedelta(days=days))
-        if days
-        else ("", ())
-    )
+    previous_where, previous_params = previous_period_filter(days, now) if days else ("", ())
 
     with get_connection(db_path) as connection:
         summary = summary_query(connection, where, params)

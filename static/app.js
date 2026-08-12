@@ -93,8 +93,9 @@ function renderAdvancedMetrics(summary, previous, rangeDays) {
   const cacheBase = Number(summary.input_tokens || 0) + Number(summary.cache_read_tokens || 0);
   const cacheRate = cacheBase ? (Number(summary.cache_read_tokens || 0) / cacheBase) * 100 : 0;
   const aiuPerRequest = summary.requests ? Number(summary.total_nano_aiu || 0) / summary.requests : 0;
-  const forecast = rangeDays
-    ? (Number(summary.total_nano_aiu || 0) / rangeDays) * 30
+  const forecastDays = rangeDays === "month" ? new Date().getUTCDate() : Number(rangeDays);
+  const forecast = forecastDays
+    ? (Number(summary.total_nano_aiu || 0) / forecastDays) * 30
     : null;
   const cards = [
     ["Period change", previous ? percentChange(summary.total_nano_aiu, previous.total_nano_aiu) : "n/a", "AIU vs previous window"],

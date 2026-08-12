@@ -60,6 +60,7 @@ class DashboardDataTests(unittest.TestCase):
     def test_range_parser(self):
         self.assertEqual(range_days_from_query("all"), 0)
         self.assertEqual(range_days_from_query("7"), 7)
+        self.assertEqual(range_days_from_query("month"), "month")
         with self.assertRaises(ValueError):
             range_days_from_query("14")
 
