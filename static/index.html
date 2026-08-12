@@ -150,6 +150,10 @@
           <h2>Session insights</h2>
           <p class="muted">Highest-usage sessions in this window.</p>
         </div>
+        <label class="session-search">
+          <span>Search</span>
+          <input id="session-search" type="search" placeholder="Summary, date, ID, project, or model">
+        </label>
       </div>
       <div id="sessions" class="session-list"></div>
     </section>
@@ -228,6 +232,16 @@
         </div>
       </div>
       <div id="locations" class="repository-list"></div>
+    </section>
+
+    <section class="panel intent-panel" data-view="overview">
+      <div class="panel-heading">
+        <div>
+          <h2>Work intent</h2>
+          <p class="muted">Heuristic classification of user turns in the selected window.</p>
+        </div>
+      </div>
+      <div id="intent-breakdown" class="intent-breakdown"></div>
     </section>
 
     <footer class="footer">

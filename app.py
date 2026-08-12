@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sqlite3
 from datetime import date, datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -100,6 +101,47 @@ def previous_period_filter(
             ),
         )
     return period_filter(range_value, end - timedelta(days=range_value)) if range_value else ("", ())
+
+
+INTENT_RULES = (
+    ("ui_design", re.compile(r"\b(button|color|colour|theme|layout|dark mode|light mode|style|styling|page|panel|card|design|hover)\b")),
+    ("setup_configuration", re.compile(r"\b(setup|set up|install|permission|permissions|access|environment|configuration|configure|macos|wsl|sandbox)\b")),
+    ("explanation", re.compile(r"\b(explain|explanation|flow|workflow|how does|how do|what would|what all|why does)\b")),
+    ("debugging", re.compile(r"\b(error|bug|broken|debug|debugging|fail(?:ed|ing)?|traceback|exception|issue|warning)\b")),
+    ("coding", re.compile(r"\b(code|coding|implement|add|create|edit|change|update|make|use|keep|fix|refactor|function|class|api|endpoint|test|build|deploy|script|clean|pr|pull request|branch|jira|ticket|story points?|label|commit|push|review|merge)\b")),
+    ("planning", re.compile(r"\b(plan|planning|design|architecture|approach|roadmap|structure)\b")),
+    ("documentation", re.compile(r"\b(document|documentation|docs|readme|changelog)\b")),
+)
+
+
+def classify_intent(message: str | None) -> str:
+    text = (message or "").strip().lower()
+    for intent, pattern in INTENT_RULES:
+        if pattern.search(text):
+            return intent
+    if "?" in text or re.match(r"^(can|could|how|what|why|when|where|which|is|are|do|does|should)\b", text):
+        return "questions"
+    if re.match(r"^(ok|okay|yeah|yes|nope|hmm|try now|use that|lets use that|that's good|that is good)\b", text):
+        return "feedback"
+    return "other"
+
+
+def intent_breakdown(rows: list[sqlite3.Row]) -> list[dict[str, Any]]:
+    counts: dict[str, int] = {}
+    for row in rows:
+        if (row["user_message"] or "").lstrip().lower().startswith("<skill-context"):
+            continue
+        intent = classify_intent(row["user_message"])
+        counts[intent] = counts.get(intent, 0) + 1
+    total = sum(counts.values())
+    return [
+        {
+            "intent": intent,
+            "turns": count,
+            "percentage": round(count * 100.0 / total, 1) if total else 0,
+        }
+        for intent, count in sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+    ]
 
 
 def summary_query(
@@ -365,6 +407,22 @@ def query_metrics(db_path: Path, days: RangeValue) -> dict[str, Any]:
             params,
         ).fetchall()
 
+        intent_rows = connection.execute(
+            f"""
+            SELECT t.user_message
+            FROM (
+                SELECT DISTINCT u.session_id, u.turn_index
+                FROM assistant_usage_events AS u
+                {where.replace("created_at", "u.created_at")}
+            ) AS used_turns
+            JOIN turns AS t
+              ON t.session_id = used_turns.session_id
+             AND t.turn_index = used_turns.turn_index
+            WHERE t.user_message IS NOT NULL
+            """,
+            params,
+        ).fetchall()
+
     def row_dict(row: sqlite3.Row) -> dict[str, Any]:
         return dict(row)
 
@@ -382,6 +440,7 @@ def query_metrics(db_path: Path, days: RangeValue) -> dict[str, Any]:
         "hourly": [row_dict(row) for row in hourly],
         "reliability": [row_dict(row) for row in reliability],
         "reasoning_efforts": [row_dict(row) for row in reasoning_efforts],
+        "intent_breakdown": intent_breakdown(intent_rows),
         "sessions": [
             {
                 **row_dict(row),

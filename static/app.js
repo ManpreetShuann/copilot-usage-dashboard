@@ -1,6 +1,7 @@
 const range = document.querySelector("#range");
 const trendMetric = document.querySelector("#trend-metric");
 const projectSelect = document.querySelector("#project-select");
+const sessionSearch = document.querySelector("#session-search");
 const exportButton = document.querySelector("#export");
 const viewTabs = document.querySelectorAll("[data-view-target]");
 const errorBox = document.querySelector("#error");
@@ -174,6 +175,26 @@ function renderInsights(summary, models) {
   );
 }
 
+function renderIntentBreakdown(intents) {
+  const container = document.querySelector("#intent-breakdown");
+  container.innerHTML = intents.length
+    ? intents.map((item) => `
+      <div class="intent-row">
+        <div class="intent-label">
+          <strong>${escapeHtml(formatIntentLabel(item.intent))}</strong>
+          <span>${integer.format(item.turns)} turns</span>
+        </div>
+        <div class="intent-track"><span style="width:${item.percentage}%"></span></div>
+        <b>${formatNumber(item.percentage)}%</b>
+      </div>
+    `).join("")
+    : '<p class="muted empty">No user-message data is available for this window.</p>';
+}
+
+function formatIntentLabel(intent) {
+  return String(intent).replaceAll("_", " ");
+}
+
 function renderModelCards(models, summary) {
   const totalAiu = Number(summary.total_nano_aiu || 0);
   const container = document.querySelector("#model-cards");
@@ -310,10 +331,25 @@ function renderProjectDetail(locations, locationModels) {
     : '<p class="muted empty">No project data in this window.</p>';
 }
 
-function renderSessions(sessions) {
+function renderSessions(sessions, query = sessionSearch.value) {
   const container = document.querySelector("#sessions");
-  container.innerHTML = sessions.length
-    ? sessions.map((session) => `
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredSessions = sessions.filter((session) => {
+    if (!normalizedQuery) return true;
+    const modelNames = (session.model_metrics || []).map((model) => model.model).join(" ");
+    return [
+      session.summary,
+      session.path,
+      session.repository,
+      session.models,
+      session.session_id,
+      session.first_activity,
+      session.last_activity,
+      modelNames,
+    ].some((value) => String(value || "").toLowerCase().includes(normalizedQuery));
+  });
+  container.innerHTML = filteredSessions.length
+    ? filteredSessions.map((session) => `
       <details class="session-item">
         <summary class="session-row">
           <div>
@@ -356,7 +392,7 @@ function renderSessions(sessions) {
         </div>
       </details>
     `).join("")
-    : '<p class="muted empty">No session data in this window.</p>';
+    : `<p class="muted empty">${normalizedQuery ? "No matching sessions." : "No session data in this window."}</p>`;
 }
 
 function formatDate(value) {
@@ -515,6 +551,7 @@ async function load() {
     renderSummary(payload.summary);
     renderAdvancedMetrics(payload.summary, payload.previous_summary, payload.range_days);
     renderInsights(payload.summary, payload.models);
+    renderIntentBreakdown(payload.intent_breakdown);
     renderModelCards(payload.models, payload.summary);
     renderReasoningEfforts(payload.reasoning_efforts);
     renderModels(payload.models);
@@ -538,6 +575,9 @@ trendMetric.addEventListener("change", () => {
 });
 projectSelect.addEventListener("change", () => {
   if (latestPayload) renderProjectDetail(latestPayload.locations, latestPayload.location_models);
+});
+sessionSearch.addEventListener("input", () => {
+  if (latestPayload) renderSessions(latestPayload.sessions, sessionSearch.value);
 });
 exportButton.addEventListener("click", exportCsv);
 viewTabs.forEach((tab) => {

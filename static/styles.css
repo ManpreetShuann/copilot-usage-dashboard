@@ -253,6 +253,15 @@ select:focus-visible, .secondary-button:focus-visible, .nav-tab:focus-visible {
 .section-heading { margin: 30px 0 14px; }
 .section-heading h2 { margin-bottom: 4px; }
 .section-heading p { font-size: 12px; margin-bottom: 0; }
+.intent-panel { margin-top: 18px; }
+.intent-breakdown { display: grid; gap: 12px; }
+.intent-row { align-items: center; display: grid; gap: 12px; grid-template-columns: 150px minmax(100px, 1fr) 52px; }
+.intent-label strong, .intent-label span { display: block; }
+.intent-label strong { font-size: 12.5px; text-transform: capitalize; }
+.intent-label span { color: var(--muted); font-size: 11px; }
+.intent-track { background: var(--panel-raised); border-radius: 5px; height: 8px; overflow: hidden; }
+.intent-track span { background: linear-gradient(90deg, var(--mauve), var(--sapphire)); border-radius: 5px; display: block; height: 100%; }
+.intent-row > b { color: var(--accent-soft); font-variant-numeric: tabular-nums; text-align: right; }
 
 /* ---------- Donuts ---------- */
 .insight-grid { display: grid; gap: 18px; grid-template-columns: repeat(3, 1fr); }
@@ -290,6 +299,24 @@ select:focus-visible, .secondary-button:focus-visible, .nav-tab:focus-visible {
 /* ---------- Trend chart ---------- */
 .metric-control { color: var(--muted); display: grid; font-size: 11px; font-weight: 600; gap: 6px; letter-spacing: .03em; text-transform: uppercase; }
 .metric-control select { padding: 7px 26px 7px 10px; }
+.session-search { color: var(--muted); display: grid; font-size: 11px; font-weight: 600; gap: 6px; letter-spacing: .03em; text-transform: uppercase; }
+.session-search input {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  min-width: 240px;
+  padding: 7px 10px;
+}
+.session-search input::placeholder { color: var(--overlay2); }
+.session-search input:focus-visible {
+  border-color: var(--mauve);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mauve) 25%, transparent);
+  outline: none;
+}
 .trend-panel { margin-top: 18px; }
 .trend-chart { min-height: 300px; overflow-x: auto; }
 .trend-chart svg { display: block; min-width: 680px; width: 100%; }
@@ -504,7 +531,9 @@ tbody tr:hover { background: color-mix(in srgb, var(--mauve) 6%, transparent); }
 }
 
 @media (max-width: 560px) {
-  .shell { padding: 26px 14px; }
+  .shell { padding: 26px 14px;     .session-search { width: 100%; }
+    .session-search input { min-width: 0; width: 100%; }
+  }
   .header { align-items: start; flex-direction: column; }
   .header .header-controls { flex-wrap: wrap; width: 100%; }
   .cards { grid-template-columns: repeat(2, 1fr); }
@@ -518,6 +547,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--mauve) 6%, transparent); }
   .donut::before { height: 94px; width: 94px; }
   .card strong { font-size: 20px; }
   .session-detail-grid { grid-template-columns: 1fr 1fr; }
+  .intent-row { grid-template-columns: 110px minmax(70px, 1fr) 46px; }
   .session-model-table { overflow-x: auto; }
   .session-model-row { min-width: 520px; }
 }

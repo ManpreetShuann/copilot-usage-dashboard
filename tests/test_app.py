@@ -6,7 +6,7 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
-from app import query_metrics, range_days_from_query
+from app import classify_intent, query_metrics, range_days_from_query
 
 
 class DashboardDataTests(unittest.TestCase):
@@ -17,8 +17,14 @@ class DashboardDataTests(unittest.TestCase):
             connection.executescript(
                 """
                 CREATE TABLE sessions (id TEXT PRIMARY KEY, cwd TEXT, repository TEXT, summary TEXT);
+                CREATE TABLE turns (
+                    session_id TEXT NOT NULL,
+                    turn_index INTEGER NOT NULL,
+                    user_message TEXT
+                );
                 CREATE TABLE assistant_usage_events (
                     session_id TEXT NOT NULL,
+                    turn_index INTEGER,
                     model TEXT NOT NULL,
                     input_tokens INTEGER,
                     output_tokens INTEGER,
@@ -35,8 +41,9 @@ class DashboardDataTests(unittest.TestCase):
                     created_at TEXT
                 );
                 INSERT INTO sessions VALUES ('s1', '/tmp/example', 'example/repo', 'Test session');
+                INSERT INTO turns VALUES ('s1', 0, 'Implement the test feature');
                 INSERT INTO assistant_usage_events VALUES
-                    ('s1', 'test-model', 100, 20, 50, 0, 5, 1000000000, 200, 100, 10, 'medium', 'stop', 0, '2099-01-01T00:00:00Z');
+                    ('s1', 0, 'test-model', 100, 20, 50, 0, 5, 1000000000, 200, 100, 10, 'medium', 'stop', 0, '2099-01-01T00:00:00Z');
                 """
             )
 
@@ -62,6 +69,7 @@ class DashboardDataTests(unittest.TestCase):
         self.assertEqual(metrics["sessions"][0]["active_days"], 1)
         self.assertEqual(metrics["sessions"][0]["model_metrics"][0]["model"], "test-model")
         self.assertEqual(metrics["sessions"][0]["model_metrics"][0]["tokens"], 125)
+        self.assertEqual(metrics["intent_breakdown"][0]["intent"], "coding")
 
     def test_range_parser(self):
         self.assertEqual(range_days_from_query("all"), 0)
@@ -69,6 +77,13 @@ class DashboardDataTests(unittest.TestCase):
         self.assertEqual(range_days_from_query("month"), "month")
         with self.assertRaises(ValueError):
             range_days_from_query("14")
+
+    def test_intent_classifier_covers_common_work_patterns(self):
+        self.assertEqual(classify_intent("make the buttons purple in dark mode"), "ui_design")
+        self.assertEqual(classify_intent("create a PR for this"), "coding")
+        self.assertEqual(classify_intent("give me complete WSL setup steps"), "setup_configuration")
+        self.assertEqual(classify_intent("explain how the request flows"), "explanation")
+        self.assertEqual(classify_intent("try now"), "feedback")
 
 
 if __name__ == "__main__":
