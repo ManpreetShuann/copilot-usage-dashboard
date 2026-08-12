@@ -307,9 +307,25 @@ def query_metrics(db_path: Path, days: RangeValue) -> dict[str, Any]:
                 u.session_id,
                 COALESCE(NULLIF(s.summary, ''), 'Untitled session') AS summary,
                 COALESCE(NULLIF(s.cwd, ''), NULLIF(s.repository, ''), 'Unknown') AS path,
+                COALESCE(NULLIF(s.repository, ''), 'Local session') AS repository,
                 COUNT(*) AS requests,
+                COUNT(DISTINCT substr(u.created_at, 1, 10)) AS active_days,
+                GROUP_CONCAT(DISTINCT u.model) AS models,
+                COALESCE(SUM(u.input_tokens), 0) AS input_tokens,
+                COALESCE(SUM(u.output_tokens), 0) AS output_tokens,
+                COALESCE(SUM(u.reasoning_tokens), 0) AS reasoning_tokens,
+                COALESCE(SUM(u.cache_read_tokens), 0) AS cache_read_tokens,
+                COALESCE(SUM(u.cache_write_tokens), 0) AS cache_write_tokens,
                 COALESCE(SUM(u.input_tokens + u.output_tokens + u.reasoning_tokens), 0) AS tokens,
+                COALESCE(SUM(CASE WHEN u.finish_reason = 'tool_calls' THEN 1 ELSE 0 END), 0) AS tool_calls,
                 COALESCE(SUM(u.total_nano_aiu), 0) AS total_nano_aiu,
+                COALESCE(ROUND(AVG(u.duration_ms)), 0) AS avg_duration_ms,
+                COALESCE(ROUND(AVG(u.time_to_first_token_ms)), 0) AS avg_ttft_ms,
+                COALESCE(ROUND(
+                    SUM(u.output_tokens) * 1000.0 / NULLIF(SUM(u.duration_ms), 0),
+                    1
+                ), 0) AS output_generation_speed_tps,
+                MIN(u.created_at) AS first_activity,
                 MAX(u.created_at) AS last_activity
             FROM assistant_usage_events AS u
             JOIN sessions AS s ON s.id = u.session_id
@@ -321,8 +337,40 @@ def query_metrics(db_path: Path, days: RangeValue) -> dict[str, Any]:
             params,
         ).fetchall()
 
+        session_models = connection.execute(
+            f"""
+            SELECT
+                u.session_id,
+                u.model,
+                COUNT(*) AS requests,
+                COALESCE(SUM(u.input_tokens), 0) AS input_tokens,
+                COALESCE(SUM(u.output_tokens), 0) AS output_tokens,
+                COALESCE(SUM(u.reasoning_tokens), 0) AS reasoning_tokens,
+                COALESCE(SUM(u.cache_read_tokens), 0) AS cache_read_tokens,
+                COALESCE(SUM(u.cache_write_tokens), 0) AS cache_write_tokens,
+                COALESCE(SUM(u.input_tokens + u.output_tokens + u.reasoning_tokens), 0) AS tokens,
+                COALESCE(SUM(CASE WHEN u.finish_reason = 'tool_calls' THEN 1 ELSE 0 END), 0) AS tool_calls,
+                COALESCE(SUM(u.total_nano_aiu), 0) AS total_nano_aiu,
+                COALESCE(ROUND(AVG(u.duration_ms)), 0) AS avg_duration_ms,
+                COALESCE(ROUND(AVG(u.time_to_first_token_ms)), 0) AS avg_ttft_ms,
+                COALESCE(ROUND(
+                    SUM(u.output_tokens) * 1000.0 / NULLIF(SUM(u.duration_ms), 0),
+                    1
+                ), 0) AS output_generation_speed_tps
+            FROM assistant_usage_events AS u
+            {where.replace("created_at", "u.created_at")}
+            GROUP BY u.session_id, u.model
+            ORDER BY u.session_id, total_nano_aiu DESC
+            """,
+            params,
+        ).fetchall()
+
     def row_dict(row: sqlite3.Row) -> dict[str, Any]:
         return dict(row)
+
+    session_model_rows: dict[str, list[dict[str, Any]]] = {}
+    for row in session_models:
+        session_model_rows.setdefault(row["session_id"], []).append(row_dict(row))
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -334,7 +382,13 @@ def query_metrics(db_path: Path, days: RangeValue) -> dict[str, Any]:
         "hourly": [row_dict(row) for row in hourly],
         "reliability": [row_dict(row) for row in reliability],
         "reasoning_efforts": [row_dict(row) for row in reasoning_efforts],
-        "sessions": [row_dict(row) for row in sessions],
+        "sessions": [
+            {
+                **row_dict(row),
+                "model_metrics": session_model_rows.get(row["session_id"], []),
+            }
+            for row in sessions
+        ],
         "locations": [row_dict(row) for row in locations],
         "location_models": [row_dict(row) for row in location_models],
     }

@@ -314,15 +314,55 @@ function renderSessions(sessions) {
   const container = document.querySelector("#sessions");
   container.innerHTML = sessions.length
     ? sessions.map((session) => `
-      <div class="session-row">
-        <div>
-          <strong title="${escapeHtml(session.summary)}">${escapeHtml(session.summary)}</strong>
-          <span>${escapeHtml(projectNameFromPath(session.path))} · ${integer.format(session.requests)} requests</span>
+      <details class="session-item">
+        <summary class="session-row">
+          <div>
+            <strong title="${escapeHtml(session.summary)}">${escapeHtml(session.summary)}</strong>
+            <span>${escapeHtml(projectNameFromPath(session.path))} · ${integer.format(session.requests)} requests</span>
+          </div>
+          <b>${formatAiu(session.total_nano_aiu)} AIU</b>
+        </summary>
+        <div class="session-details">
+          <div class="session-detail-grid">
+            <div><span>Models</span><b title="${escapeHtml(session.models || "")}">${escapeHtml((session.models || "Unknown").split(",").join(", "))}</b></div>
+            <div><span>Tool calls</span><b>${integer.format(session.tool_calls)}</b></div>
+            <div><span>Total tokens</span><b>${formatTokens(session.tokens)}</b></div>
+            <div><span>Input / output</span><b>${formatTokens(session.input_tokens)} / ${formatTokens(session.output_tokens)}</b></div>
+            <div><span>Reasoning tokens</span><b>${formatTokens(session.reasoning_tokens)}</b></div>
+            <div><span>Cache reads / writes</span><b>${formatTokens(session.cache_read_tokens)} / ${formatTokens(session.cache_write_tokens)}</b></div>
+            <div><span>Avg response</span><b>${formatNumber(session.avg_duration_ms)} ms</b></div>
+            <div><span>Generation speed</span><b>${formatNumber(session.output_generation_speed_tps)} tokens/s</b></div>
+            <div><span>Active days</span><b>${integer.format(session.active_days)}</b></div>
+            <div><span>Last activity</span><b>${escapeHtml(formatDate(session.last_activity))}</b></div>
+          </div>
+          <div class="session-models">
+            <div class="session-model-heading">Usage by model</div>
+            <div class="session-model-table">
+              <div class="session-model-row session-model-header">
+                <span>Model</span><span>Requests</span><span>Tokens</span><span>Tool calls</span><span>AIU</span>
+              </div>
+              ${(session.model_metrics || []).map((model) => `
+                <div class="session-model-row">
+                  <strong title="${escapeHtml(model.model)}">${escapeHtml(model.model)}</strong>
+                  <span>${integer.format(model.requests)}</span>
+                  <span>${formatTokens(model.tokens)}</span>
+                  <span>${integer.format(model.tool_calls)}</span>
+                  <b>${formatAiu(model.total_nano_aiu)}</b>
+                </div>
+              `).join("") || '<span class="muted">No model data.</span>'}
+            </div>
+          </div>
+          <span class="session-path" title="${escapeHtml(session.path)}">${escapeHtml(session.repository)} · ${escapeHtml(session.path)}</span>
         </div>
-        <b>${formatAiu(session.total_nano_aiu)} AIU</b>
-      </div>
+      </details>
     `).join("")
     : '<p class="muted empty">No session data in this window.</p>';
+}
+
+function formatDate(value) {
+  if (!value) return "Unknown";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 }
 
 function renderDaily(daily) {

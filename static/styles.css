@@ -362,7 +362,9 @@ select:focus-visible, .secondary-button:focus-visible, .nav-tab:focus-visible {
 .project-model-row b { color: var(--green); font-weight: 700; }
 
 /* ---------- Session list ---------- */
-.session-list { display: grid; gap: 4px; max-height: 260px; overflow-y: auto; padding-right: 2px; }
+.session-list { display: grid; gap: 4px; max-height: 620px; overflow-y: auto; padding-right: 2px; }
+.session-item { border-radius: var(--radius-sm); }
+.session-item[open] { background: color-mix(in srgb, var(--mauve) 5%, transparent); }
 .session-row {
   align-items: center;
   border-radius: var(--radius-sm);
@@ -370,13 +372,37 @@ select:focus-visible, .secondary-button:focus-visible, .nav-tab:focus-visible {
   gap: 12px;
   justify-content: space-between;
   padding: 10px 10px;
+  cursor: pointer;
+  list-style: none;
   transition: background .15s var(--ease);
 }
+.session-row::-webkit-details-marker { display: none; }
+.session-row::before { color: var(--muted); content: "›"; font-size: 18px; line-height: 1; transition: transform .15s var(--ease); }
+.session-item[open] .session-row::before { transform: rotate(90deg); }
+.session-row > div { flex: 1; min-width: 0; }
 .session-row:hover { background: var(--panel-raised); }
 .session-row strong, .session-row span { display: block; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .session-row strong { font-size: 12.5px; font-weight: 650; }
 .session-row span { color: var(--muted); font-size: 11px; }
 .session-row b { color: var(--green); font-weight: 700; white-space: nowrap; }
+.session-details { border-top: 1px solid var(--border); padding: 12px 14px 14px 32px; }
+.session-detail-grid { display: grid; gap: 10px 18px; grid-template-columns: repeat(3, 1fr); }
+.session-detail-grid div { min-width: 0; }
+.session-detail-grid span, .session-detail-grid b { display: block; }
+.session-detail-grid span { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.session-detail-grid b { font-size: 12px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.session-models { margin-top: 14px; }
+.session-model-heading { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .04em; margin-bottom: 7px; text-transform: uppercase; }
+.session-model-table { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.session-model-row { align-items: center; background: var(--panel-raised); border-top: 1px solid var(--border); display: grid; gap: 10px; grid-template-columns: minmax(140px, 2fr) repeat(4, minmax(64px, 1fr)); padding: 8px 10px; }
+.session-model-row:first-child { border-top: 0; }
+.session-model-row > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.session-model-row:not(.session-model-header) > span, .session-model-row:not(.session-model-header) > b { font-variant-numeric: tabular-nums; text-align: right; }
+.session-model-row strong { color: var(--accent-soft); font-size: 11.5px; }
+.session-model-row b { color: var(--green); font-size: 11.5px; }
+.session-model-header { background: var(--panel); color: var(--muted); font-size: 9.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.session-model-header span:not(:first-child) { text-align: right; }
+.session-path { color: var(--muted); display: block; font-size: 10.5px; margin-top: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ---------- Model cards ---------- */
 .model-cards { display: grid; gap: 12px; grid-template-columns: repeat(2, 1fr); margin-bottom: 18px; }
@@ -491,4 +517,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--mauve) 6%, transparent); }
   .donut { flex-basis: 145px; height: 145px; width: 145px; }
   .donut::before { height: 94px; width: 94px; }
   .card strong { font-size: 20px; }
+  .session-detail-grid { grid-template-columns: 1fr 1fr; }
+  .session-model-table { overflow-x: auto; }
+  .session-model-row { min-width: 520px; }
 }
