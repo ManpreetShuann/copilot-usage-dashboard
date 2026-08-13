@@ -46,6 +46,7 @@
   --shadow: 0 8px 24px -12px rgba(15, 15, 20, .7);
   --heat-label: rgba(255, 255, 255, .82);
   --ease: cubic-bezier(.2, .7, .3, 1);
+  --dashboard-gap: 18px;
 }
 
 @media (prefers-color-scheme: light) {
@@ -105,7 +106,13 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-.shell { max-width: 1280px; margin: 0 auto; padding: 40px 28px 48px; }
+.shell {
+  display: grid;
+  gap: var(--dashboard-gap);
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 40px 28px 48px;
+}
 
 /* ---------- Header ---------- */
 .header {
@@ -113,7 +120,7 @@ body {
   display: flex;
   gap: 16px;
   justify-content: space-between;
-  margin-bottom: 26px;
+  margin-bottom: 0;
 }
 .brand { align-items: center; display: flex; gap: 14px; }
 .brand-logo { border-radius: 13px; box-shadow: 0 8px 20px color-mix(in srgb, var(--mauve) 16%, transparent); flex: 0 0 auto; }
@@ -201,7 +208,7 @@ select:focus-visible, .secondary-button:focus-visible, .nav-tab:focus-visible {
   border-radius: var(--radius);
   display: flex;
   gap: 2px;
-  margin-bottom: 24px;
+  margin-bottom: 0;
   overflow-x: auto;
   padding: 5px;
 }
@@ -234,12 +241,13 @@ select:focus-visible, .secondary-button:focus-visible, .nav-tab:focus-visible {
   color: var(--flamingo);
   display: flex;
   gap: 8px;
+  margin: 0;
   padding: 12px 14px;
 }
 .error::before { content: "⚠"; }
 
 /* ---------- Summary cards ---------- */
-.cards { display: grid; gap: 12px; grid-template-columns: repeat(6, 1fr); margin-bottom: 16px; }
+.cards { display: grid; gap: var(--dashboard-gap); grid-template-columns: repeat(6, 1fr); }
 .card, .panel {
   background: linear-gradient(175deg, color-mix(in srgb, var(--panel) 100%, transparent), var(--panel) 55%);
   border: 1px solid var(--border);
@@ -269,7 +277,7 @@ select:focus-visible, .secondary-button:focus-visible, .nav-tab:focus-visible {
 .card span { font-size: 11px; }
 
 /* ---------- Advanced metric strip ---------- */
-.metric-strip { display: grid; gap: 12px; grid-template-columns: repeat(4, 1fr); margin-bottom: 18px; }
+.metric-strip { display: grid; gap: var(--dashboard-gap); grid-template-columns: repeat(4, 1fr); }
 .metric-card {
   background: var(--panel-raised);
   border: 1px solid var(--border);
@@ -283,16 +291,17 @@ select:focus-visible, .secondary-button:focus-visible, .nav-tab:focus-visible {
 .metric-card span { color: var(--muted); font-size: 11px; }
 
 /* ---------- Panels ---------- */
-.panel { padding: 22px; margin-bottom: 18px; }
+.panel { padding: 22px; margin-bottom: 0; }
 .panel-heading { align-items: start; display: flex; gap: 12px; justify-content: space-between; margin-bottom: 18px; }
 .panel-heading p { font-size: 12px; margin-bottom: 0; }
-.section-heading { margin: 30px 0 14px; }
+.section-heading { margin: 0 0 var(--dashboard-gap); }
 .section-heading h2 { margin-bottom: 4px; }
 .section-heading p { font-size: 12px; margin-bottom: 0; }
 .intent-panel { min-width: 0; }
 
 /* ---------- Donuts ---------- */
-.insight-grid { display: grid; gap: 18px; grid-template-columns: repeat(2, 1fr); }
+.insight-grid { display: grid; gap: var(--dashboard-gap); grid-template-columns: repeat(2, 1fr); }
+.insight-grid .panel, .grid .panel { margin-bottom: 0; }
 .donut-layout { align-items: center; display: flex; gap: 30px; min-height: 190px; }
 .donut {
   align-items: center;
@@ -360,7 +369,7 @@ select:focus-visible, .secondary-button:focus-visible, .nav-tab:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--mauve) 25%, transparent);
   outline: none;
 }
-.trend-panel { margin-top: 18px; }
+.trend-panel { margin-top: 0; }
 .trend-chart { min-height: 300px; overflow-x: auto; }
 .trend-chart svg { display: block; min-width: 680px; width: 100%; }
 .chart-grid line { stroke: var(--border); stroke-dasharray: 3 5; stroke-width: 1; }
@@ -480,7 +489,7 @@ select:focus-visible, .secondary-button:focus-visible, .nav-tab:focus-visible {
 .session-path { color: var(--muted); display: block; font-size: 10.5px; margin-top: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ---------- Model cards ---------- */
-.model-cards { display: grid; gap: 12px; grid-template-columns: repeat(2, 1fr); margin-bottom: 18px; }
+.model-cards { display: grid; gap: var(--dashboard-gap); grid-template-columns: repeat(2, 1fr); }
 .model-card {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -525,7 +534,9 @@ tbody tr:hover { background: color-mix(in srgb, var(--mauve) 6%, transparent); }
 .aiu { color: var(--green); font-weight: 700; }
 
 /* ---------- Generic two-col grid ---------- */
-.grid { display: grid; gap: 18px; grid-template-columns: 1.25fr 1fr; }
+.grid { display: grid; align-items: start; gap: var(--dashboard-gap); grid-template-columns: 1.25fr 1fr; }
+.performance-panel { grid-column: 2; grid-row: 1 / span 2; }
+.finish-panel .status-list { margin-top: 0; }
 
 /* ---------- Daily bar chart ---------- */
 .chart { height: 250px; overflow-x: auto; overflow-y: hidden; padding: 4px 0 0; }
@@ -548,7 +559,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--mauve) 6%, transparent); }
 .bar-group span { color: var(--muted); font-size: 9px; letter-spacing: -.02em; position: absolute; text-align: center; top: calc(100% + 8px); white-space: nowrap; }
 
 /* ---------- Repository / project list ---------- */
-.repository-list { display: grid; gap: 4px; max-height: 220px; overflow-y: auto; padding-right: 2px; }
+.repository-list { display: grid; gap: 4px; max-height: 320px; overflow-y: auto; padding-right: 2px; }
 .repo-row {
   align-items: center;
   border-radius: var(--radius-sm);
@@ -576,12 +587,13 @@ tbody tr:hover { background: color-mix(in srgb, var(--mauve) 6%, transparent); }
   .effort-layout { grid-template-columns: 1fr; }
   .insight-grid { grid-template-columns: repeat(2, 1fr); }
   .grid { grid-template-columns: 1fr; }
+  .performance-panel { grid-column: auto; grid-row: auto; }
 }
 
 @media (max-width: 560px) {
-  .shell { padding: 26px 14px;     .session-search { width: 100%; }
-    .session-search input { min-width: 0; width: 100%; }
-  }
+  .shell { padding: 26px 14px; }
+  .session-search { width: 100%; }
+  .session-search input { min-width: 0; width: 100%; }
   .header { align-items: start; flex-direction: column; }
   .header .header-controls { flex-wrap: wrap; width: 100%; }
   .cards { grid-template-columns: repeat(2, 1fr); }

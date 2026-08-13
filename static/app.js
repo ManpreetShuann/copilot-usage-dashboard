@@ -351,6 +351,7 @@ function renderHourly(hourly) {
 
 function renderPerformance(summary, reliability) {
   const container = document.querySelector("#performance");
+  const finishContainer = document.querySelector("#finish-reasons");
   const stopRate = summary.requests
     ? (Number(summary.stop_requests || 0) / summary.requests) * 100
     : 0;
@@ -363,6 +364,7 @@ function renderPerformance(summary, reliability) {
       <b>${integer.format(row.requests)}</b>
     </div>
   `).join("");
+  finishContainer.innerHTML = finishRows || '<span class="muted">No finish data.</span>';
   container.innerHTML = `
     <div class="performance-stats">
       <div><span>Avg response time</span><b>${formatNumber(summary.avg_duration_ms)} ms</b></div>
@@ -374,8 +376,6 @@ function renderPerformance(summary, reliability) {
       <div><span>Tool calls</span><b>${integer.format(summary.tool_call_requests)} · ${formatNumber(toolCallRate)}%</b></div>
       <div><span>Filtered requests</span><b>${integer.format(summary.filtered_requests)}</b></div>
     </div>
-    <div class="status-heading">Finish reasons</div>
-    <div class="status-list">${finishRows || '<span class="muted">No finish data.</span>'}</div>
   `;
 }
 
@@ -497,10 +497,9 @@ function renderDaily(daily) {
   `).join("");
   const bars = daily.map((row) => {
     const height = Math.max((totalTokens(row) / dailyMax) * 100, 2);
-    const date = new Date(`${row.day}T00:00:00Z`).toLocaleDateString(undefined, {
+    const date = new Date(`${row.day}T00:00:00`).toLocaleDateString(undefined, {
       month: "short",
       day: "numeric",
-      timeZone: "UTC",
     });
     return `
       <div class="bar-group" title="${row.day}: ${formatTokens(totalTokens(row))} tokens, ${formatAiu(row.total_nano_aiu)} AIU">
@@ -551,10 +550,9 @@ function renderDaily(daily) {
   ).join("");
   const labels = points.filter((_, index) => daily.length <= 8 || index % Math.ceil(daily.length / 8) === 0)
     .map((point) => {
-      const date = new Date(`${point.row.day}T00:00:00Z`).toLocaleDateString(undefined, {
+      const date = new Date(`${point.row.day}T00:00:00`).toLocaleDateString(undefined, {
         month: "short",
         day: "numeric",
-        timeZone: "UTC",
       });
       return `<text x="${point.x}" y="${height - 10}" text-anchor="middle">${date}</text>`;
     }).join("");

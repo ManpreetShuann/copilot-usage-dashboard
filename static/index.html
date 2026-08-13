@@ -115,8 +115,8 @@
       <div id="trend-chart" class="trend-chart"></div>
     </section>
 
-    <section class="grid" data-view="performance">
-      <div class="panel">
+    <section class="grid performance-grid" data-view="performance">
+      <div class="panel activity-panel">
         <div class="panel-heading">
           <div>
             <h2>Activity by hour</h2>
@@ -125,7 +125,16 @@
         </div>
         <div id="hourly-heatmap" class="heatmap"></div>
       </div>
-      <div class="panel">
+      <div class="panel finish-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>Finish reasons</h2>
+            <p class="muted">How requests completed in the selected timeframe.</p>
+          </div>
+        </div>
+        <div id="finish-reasons" class="status-list"></div>
+      </div>
+      <div class="panel performance-panel">
         <div class="panel-heading">
           <div>
             <h2>Performance and reliability</h2>

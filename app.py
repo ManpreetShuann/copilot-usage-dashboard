@@ -60,17 +60,14 @@ def range_days_from_query(value: str | None) -> RangeValue:
     return days
 
 
-def since_value(days: int) -> str | None:
-    if days == 0:
-        return None
-    since = datetime.now(timezone.utc) - timedelta(days=days)
-    return since.isoformat(timespec="milliseconds").replace("+00:00", "Z")
+def utc_value(value: datetime) -> str:
+    return value.astimezone(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
 def period_filter(range_value: RangeValue, end: datetime | None = None) -> tuple[str, tuple[str, ...]]:
     if range_value == 0:
         return "", ()
-    period_end = end or datetime.now(timezone.utc)
+    period_end = (end or datetime.now().astimezone()).astimezone()
     period_start = (
         period_end.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         if range_value == "month"
@@ -79,8 +76,8 @@ def period_filter(range_value: RangeValue, end: datetime | None = None) -> tuple
     return (
         "WHERE created_at >= ? AND created_at < ?",
         (
-            period_start.isoformat(timespec="milliseconds").replace("+00:00", "Z"),
-            period_end.isoformat(timespec="milliseconds").replace("+00:00", "Z"),
+            utc_value(period_start),
+            utc_value(period_end),
         ),
     )
 
@@ -89,6 +86,7 @@ def previous_period_filter(
     range_value: RangeValue,
     end: datetime,
 ) -> tuple[str, tuple[str, ...]]:
+    end = end.astimezone()
     if range_value == "month":
         current_start = end.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         previous_end = current_start
@@ -96,8 +94,8 @@ def previous_period_filter(
         return (
             "WHERE created_at >= ? AND created_at < ?",
             (
-                previous_start.isoformat(timespec="milliseconds").replace("+00:00", "Z"),
-                previous_end.isoformat(timespec="milliseconds").replace("+00:00", "Z"),
+                utc_value(previous_start),
+                utc_value(previous_end),
             ),
         )
     return period_filter(range_value, end - timedelta(days=range_value)) if range_value else ("", ())
@@ -203,7 +201,7 @@ def summary_query(
         SELECT
             COUNT(*) AS requests,
             COUNT(DISTINCT session_id) AS sessions,
-            COUNT(DISTINCT substr(created_at, 1, 10)) AS active_days,
+            COUNT(DISTINCT strftime('%Y-%m-%d', created_at, 'localtime')) AS active_days,
             COALESCE(SUM(input_tokens), 0) AS input_tokens,
             COALESCE(SUM(output_tokens), 0) AS output_tokens,
             COALESCE(SUM(cache_read_tokens), 0) AS cache_read_tokens,
@@ -257,7 +255,7 @@ def fill_daily_gaps(rows: list[sqlite3.Row], range_value: RangeValue, now: datet
 
 
 def query_metrics(db_path: Path, days: RangeValue) -> dict[str, Any]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now().astimezone()
     where, params = period_filter(days, now)
     previous_where, previous_params = previous_period_filter(days, now) if days else ("", ())
 
@@ -294,7 +292,7 @@ def query_metrics(db_path: Path, days: RangeValue) -> dict[str, Any]:
         daily = connection.execute(
             f"""
             SELECT
-                substr(created_at, 1, 10) AS day,
+                strftime('%Y-%m-%d', created_at, 'localtime') AS day,
                 COUNT(*) AS requests,
                 COALESCE(SUM(input_tokens), 0) AS input_tokens,
                 COALESCE(SUM(output_tokens), 0) AS output_tokens,
@@ -313,7 +311,7 @@ def query_metrics(db_path: Path, days: RangeValue) -> dict[str, Any]:
         hourly = connection.execute(
             f"""
             SELECT
-                CAST(substr(created_at, 12, 2) AS INTEGER) AS hour,
+                CAST(strftime('%H', created_at, 'localtime') AS INTEGER) AS hour,
                 COUNT(*) AS requests,
                 COALESCE(SUM(total_nano_aiu), 0) AS total_nano_aiu
             FROM assistant_usage_events
@@ -419,7 +417,7 @@ def query_metrics(db_path: Path, days: RangeValue) -> dict[str, Any]:
                 COALESCE(NULLIF(s.cwd, ''), NULLIF(s.repository, ''), 'Unknown') AS path,
                 COALESCE(NULLIF(s.repository, ''), 'Local session') AS repository,
                 COUNT(*) AS requests,
-                COUNT(DISTINCT substr(u.created_at, 1, 10)) AS active_days,
+                COUNT(DISTINCT strftime('%Y-%m-%d', u.created_at, 'localtime')) AS active_days,
                 GROUP_CONCAT(DISTINCT u.model) AS models,
                 COALESCE(SUM(u.input_tokens), 0) AS input_tokens,
                 COALESCE(SUM(u.output_tokens), 0) AS output_tokens,
