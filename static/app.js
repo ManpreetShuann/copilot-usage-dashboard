@@ -283,6 +283,11 @@ function renderModelCards(models, summary) {
             <span><b>${formatAiu(model.total_nano_aiu)}</b> AIU</span>
             <span><b>${integer.format(model.requests)}</b> requests</span>
             <span><b>${formatTokens(totalTokens(model))}</b> tokens</span>
+            <span><b>${formatTokens(model.input_tokens)}</b> input</span>
+            <span><b>${formatTokens(model.output_tokens)}</b> output</span>
+            <span><b>${formatTokens(model.reasoning_tokens)}</b> reasoning</span>
+            <span><b>${formatTokens(model.cache_read_tokens)}</b> cache read</span>
+            <span><b>${formatTokens(model.cache_write_tokens)}</b> cache write</span>
             <span><b>${formatNumber(model.avg_duration_ms)} ms</b> latency</span>
             <span><b>${formatNumber(model.output_generation_speed_tps)} tokens/s</b> generation</span>
           </div>
