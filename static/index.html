@@ -75,12 +75,24 @@
         <div class="panel-heading">
           <div>
             <h2>Token composition</h2>
-            <p class="muted">Cache reads are shown separately from request tokens.</p>
+            <p class="muted">Request-token mix; cache reads are reported separately.</p>
           </div>
         </div>
         <div class="donut-layout">
           <div id="token-donut" class="donut"><div class="donut-center"></div></div>
           <div id="token-legend" class="legend"></div>
+        </div>
+      </div>
+      <div class="panel intent-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>Work intent</h2>
+            <p class="muted">Heuristic classification of user turns in the selected timeframe.</p>
+          </div>
+        </div>
+        <div class="donut-layout">
+          <div id="intent-donut" class="donut"><div class="donut-center"></div></div>
+          <div id="intent-legend" class="legend"></div>
         </div>
       </div>
     </section>
@@ -236,16 +248,6 @@
         </div>
       </div>
       <div id="locations" class="repository-list"></div>
-    </section>
-
-    <section class="panel intent-panel" data-view="overview">
-      <div class="panel-heading">
-        <div>
-          <h2>Work intent</h2>
-          <p class="muted">Heuristic classification of user turns in the selected timeframe.</p>
-        </div>
-      </div>
-      <div id="intent-breakdown" class="intent-breakdown"></div>
     </section>
 
     <footer class="footer">

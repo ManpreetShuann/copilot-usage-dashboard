@@ -136,19 +136,66 @@ function renderDonut(donutId, legendId, segments, centerValue, centerLabel) {
   legend.innerHTML = segments.map((segment, index) => {
     const percentage = (Number(segment.value || 0) / total) * 100;
     return `
-      <div class="legend-row">
+      <${segment.onClick ? "button" : "div"} class="legend-row${segment.onClick ? " legend-button" : ""}"${segment.onClick ? ` type="button" data-segment-index="${index}"` : ""}>
         <span class="legend-label"><i style="background:${colors[index % colors.length]}"></i>${escapeHtml(segment.label)}</span>
-        <b>${formatNumber(percentage)}%</b>
-      </div>
+        <b>${segment.legendValue ? `${escapeHtml(segment.legendValue)} · ` : ""}${formatNumber(percentage)}%</b>
+      </${segment.onClick ? "button" : "div"}>
     `;
   }).join("");
+  legend.querySelectorAll("[data-segment-index]").forEach((element) => {
+    element.addEventListener("click", () => segments[Number(element.dataset.segmentIndex)].onClick());
+  });
+
+  const segmentAtPoint = (event) => {
+    const bounds = donut.getBoundingClientRect();
+    const x = event.clientX - (bounds.left + bounds.width / 2);
+    const y = event.clientY - (bounds.top + bounds.height / 2);
+    const angle = (Math.atan2(x, -y) * 180 / Math.PI + 360) % 360;
+    const value = angle / 360 * total;
+    let cursor = 0;
+    return segments.find((segment) => {
+      cursor += Number(segment.value || 0);
+      return value < cursor;
+    });
+  };
+  donut.onclick = (event) => {
+    segmentAtPoint(event)?.onClick?.();
+  };
+  donut.onmousemove = (event) => {
+    const segment = segmentAtPoint(event);
+    if (!segment?.hoverValue) return;
+    const percentage = (Number(segment.value || 0) / total) * 100;
+    donut.querySelector(".donut-center").innerHTML =
+      `<strong>${escapeHtml(segment.hoverValue)}</strong><span>${escapeHtml(segment.label)} · ${formatNumber(percentage)}%</span>`;
+  };
+  donut.onmouseleave = () => {
+    donut.querySelector(".donut-center").innerHTML =
+      `<strong>${centerValue}</strong><span>${centerLabel}</span>`;
+  };
+}
+
+function modelCardId(model) {
+  return `model-card-${String(model).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+}
+
+function focusModel(model) {
+  setView("models");
+  const card = document.querySelector(`#${modelCardId(model)}`);
+  card?.scrollIntoView({ behavior: "smooth", block: "center" });
+  card?.classList.add("focused");
+  window.setTimeout(() => card?.classList.remove("focused"), 1400);
 }
 
 function renderInsights(summary, models) {
   renderDonut(
     "model-donut",
     "model-legend",
-    models.map((model) => ({ label: model.model, value: model.total_nano_aiu })),
+    models.map((model) => ({
+      label: model.model,
+      value: model.total_nano_aiu,
+      hoverValue: `${formatAiu(model.total_nano_aiu)} AIU`,
+      onClick: () => focusModel(model.model),
+    })),
     formatAiu(summary.total_nano_aiu),
     "AIU",
   );
@@ -159,16 +206,31 @@ function renderInsights(summary, models) {
       { label: "Input", value: summary.input_tokens },
       { label: "Output", value: summary.output_tokens },
       { label: "Reasoning", value: summary.reasoning_tokens },
-      { label: "Cache reads", value: summary.cache_read_tokens },
     ],
-    formatTokens(totalTokens(summary) + Number(summary.cache_read_tokens || 0)),
-    "all tokens",
+    formatTokens(totalTokens(summary)),
+    "request tokens",
   );
+  const requestTokens = totalTokens(summary);
+  const cacheReads = Number(summary.cache_read_tokens || 0);
+  const cacheShare = requestTokens + cacheReads
+    ? (cacheReads / (requestTokens + cacheReads)) * 100
+    : 0;
+  document.querySelector("#token-legend").insertAdjacentHTML("beforeend", `
+    <div class="legend-row legend-note">
+      <span class="legend-label"><i></i>Cache reads</span>
+      <b>${formatTokens(cacheReads)} · ${formatNumber(cacheShare)}%</b>
+    </div>
+  `);
   renderDonut(
     "model-token-donut",
     "model-token-legend",
     models
-      .map((model) => ({ label: model.model, value: totalTokens(model) }))
+      .map((model) => ({
+        label: model.model,
+        value: totalTokens(model),
+        hoverValue: `${formatTokens(totalTokens(model))} tokens`,
+        onClick: () => focusModel(model.model),
+      }))
       .sort((left, right) => right.value - left.value),
     formatTokens(totalTokens(summary)),
     "tokens",
@@ -176,19 +238,19 @@ function renderInsights(summary, models) {
 }
 
 function renderIntentBreakdown(intents) {
-  const container = document.querySelector("#intent-breakdown");
-  container.innerHTML = intents.length
-    ? intents.map((item) => `
-      <div class="intent-row">
-        <div class="intent-label">
-          <strong>${escapeHtml(formatIntentLabel(item.intent))}</strong>
-          <span>${integer.format(item.turns)} turns</span>
-        </div>
-        <div class="intent-track"><span style="width:${item.percentage}%"></span></div>
-        <b>${formatNumber(item.percentage)}%</b>
-      </div>
-    `).join("")
-    : '<p class="muted empty">No user-message data is available for this timeframe.</p>';
+  const totalTurns = intents.reduce((sum, item) => sum + Number(item.turns || 0), 0);
+  renderDonut(
+    "intent-donut",
+    "intent-legend",
+    intents.map((item) => ({
+      label: formatIntentLabel(item.intent),
+      value: item.turns,
+      legendValue: `${integer.format(item.turns)} turns`,
+      hoverValue: `${integer.format(item.turns)} turns`,
+    })),
+    integer.format(totalTurns),
+    "user turns",
+  );
 }
 
 function formatIntentLabel(intent) {
@@ -202,7 +264,7 @@ function renderModelCards(models, summary) {
     ? models.map((model, index) => {
       const share = totalAiu ? (Number(model.total_nano_aiu || 0) / totalAiu) * 100 : 0;
       return `
-        <article class="model-card">
+        <article id="${modelCardId(model.model)}" class="model-card">
           <div class="model-card-top">
             <span class="model-dot" style="background:${colors[index % colors.length]}"></span>
             <strong title="${escapeHtml(model.model)}">${escapeHtml(model.model)}</strong>
