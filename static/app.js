@@ -203,9 +203,9 @@ function renderInsights(summary, models) {
     "token-donut",
     "token-legend",
     [
-      { label: "Input", value: summary.input_tokens },
-      { label: "Output", value: summary.output_tokens },
-      { label: "Reasoning", value: summary.reasoning_tokens },
+      { label: "Input", value: summary.input_tokens, hoverValue: `${formatTokens(summary.input_tokens)} tokens` },
+      { label: "Output", value: summary.output_tokens, hoverValue: `${formatTokens(summary.output_tokens)} tokens` },
+      { label: "Reasoning", value: summary.reasoning_tokens, hoverValue: `${formatTokens(summary.reasoning_tokens)} tokens` },
     ],
     formatTokens(totalTokens(summary)),
     "request tokens",
