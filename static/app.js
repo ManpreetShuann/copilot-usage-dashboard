@@ -46,6 +46,10 @@ function formatAiu(value) {
   return formatNumber(amount);
 }
 
+function formatTokenComposition(tokens, aiu) {
+  return `${formatTokens(tokens)} tokens · ${formatAiu(aiu)} AIU`;
+}
+
 function totalTokens(row) {
   return Number(row.input_tokens || 0)
     + Number(row.output_tokens || 0)
@@ -203,9 +207,9 @@ function renderInsights(summary, models) {
     "token-donut",
     "token-legend",
     [
-      { label: "Input", value: summary.input_tokens, hoverValue: `${formatTokens(summary.input_tokens)} tokens` },
-      { label: "Output", value: summary.output_tokens, hoverValue: `${formatTokens(summary.output_tokens)} tokens` },
-      { label: "Reasoning", value: summary.reasoning_tokens, hoverValue: `${formatTokens(summary.reasoning_tokens)} tokens` },
+      { label: "Input", value: summary.input_tokens, legendValue: formatTokenComposition(summary.input_tokens, summary.input_nano_aiu), hoverValue: formatTokenComposition(summary.input_tokens, summary.input_nano_aiu) },
+      { label: "Output", value: summary.output_tokens, legendValue: formatTokenComposition(summary.output_tokens, summary.output_nano_aiu), hoverValue: formatTokenComposition(summary.output_tokens, summary.output_nano_aiu) },
+      { label: "Reasoning", value: summary.reasoning_tokens, legendValue: formatTokenComposition(summary.reasoning_tokens, 0), hoverValue: formatTokenComposition(summary.reasoning_tokens, 0) },
     ],
     formatTokens(totalTokens(summary)),
     "request tokens",
@@ -218,7 +222,11 @@ function renderInsights(summary, models) {
   document.querySelector("#token-legend").insertAdjacentHTML("beforeend", `
     <div class="legend-row legend-note">
       <span class="legend-label"><i></i>Cache reads</span>
-      <b>${formatTokens(cacheReads)} · ${formatNumber(cacheShare)}%</b>
+      <b>${formatTokenComposition(cacheReads, summary.cache_read_nano_aiu)} · ${formatNumber(cacheShare)}%</b>
+    </div>
+    <div class="legend-row legend-note">
+      <span class="legend-label"><i></i>Cache writes</span>
+      <b>${formatTokenComposition(summary.cache_write_tokens, summary.cache_write_nano_aiu)}</b>
     </div>
   `);
   renderDonut(

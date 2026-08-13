@@ -149,6 +149,55 @@ def summary_query(
     where: str,
     params: tuple[str, ...],
 ) -> sqlite3.Row:
+    token_details_available = any(
+        row["name"] == "token_details_json"
+        for row in connection.execute("PRAGMA table_info(assistant_usage_events)")
+    )
+    token_aiu_select = """
+            0 AS input_nano_aiu,
+            0 AS output_nano_aiu,
+            0 AS cache_read_nano_aiu,
+            0 AS cache_write_nano_aiu,
+    """
+    if token_details_available:
+        token_aiu_select = """
+            COALESCE(SUM((
+                SELECT SUM(
+                    json_extract(detail.value, '$.tokenCount')
+                    * json_extract(detail.value, '$.costPerBatch')
+                    / NULLIF(json_extract(detail.value, '$.batchSize'), 0)
+                )
+                FROM json_each(events.token_details_json) AS detail
+                WHERE json_extract(detail.value, '$.tokenType') = 'input'
+            )), 0) AS input_nano_aiu,
+            COALESCE(SUM((
+                SELECT SUM(
+                    json_extract(detail.value, '$.tokenCount')
+                    * json_extract(detail.value, '$.costPerBatch')
+                    / NULLIF(json_extract(detail.value, '$.batchSize'), 0)
+                )
+                FROM json_each(events.token_details_json) AS detail
+                WHERE json_extract(detail.value, '$.tokenType') = 'output'
+            )), 0) AS output_nano_aiu,
+            COALESCE(SUM((
+                SELECT SUM(
+                    json_extract(detail.value, '$.tokenCount')
+                    * json_extract(detail.value, '$.costPerBatch')
+                    / NULLIF(json_extract(detail.value, '$.batchSize'), 0)
+                )
+                FROM json_each(events.token_details_json) AS detail
+                WHERE json_extract(detail.value, '$.tokenType') = 'cache_read'
+            )), 0) AS cache_read_nano_aiu,
+            COALESCE(SUM((
+                SELECT SUM(
+                    json_extract(detail.value, '$.tokenCount')
+                    * json_extract(detail.value, '$.costPerBatch')
+                    / NULLIF(json_extract(detail.value, '$.batchSize'), 0)
+                )
+                FROM json_each(events.token_details_json) AS detail
+                WHERE json_extract(detail.value, '$.tokenType') = 'cache_write'
+            )), 0) AS cache_write_nano_aiu,
+        """
     return connection.execute(
         f"""
         SELECT
@@ -161,6 +210,7 @@ def summary_query(
             COALESCE(SUM(cache_write_tokens), 0) AS cache_write_tokens,
             COALESCE(SUM(reasoning_tokens), 0) AS reasoning_tokens,
             COALESCE(SUM(total_nano_aiu), 0) AS total_nano_aiu,
+            {token_aiu_select}
             COALESCE(ROUND(AVG(duration_ms)), 0) AS avg_duration_ms,
             COALESCE(ROUND(AVG(time_to_first_token_ms)), 0) AS avg_ttft_ms,
             COALESCE(ROUND(AVG(inter_token_latency_ms)), 0) AS avg_inter_token_ms,
@@ -171,7 +221,7 @@ def summary_query(
             COALESCE(SUM(CASE WHEN finish_reason = 'stop' THEN 1 ELSE 0 END), 0) AS stop_requests,
             COALESCE(SUM(CASE WHEN finish_reason = 'tool_calls' THEN 1 ELSE 0 END), 0) AS tool_call_requests,
             COALESCE(SUM(CASE WHEN content_filter_triggered = 1 THEN 1 ELSE 0 END), 0) AS filtered_requests
-        FROM assistant_usage_events
+        FROM assistant_usage_events AS events
         {where}
         """,
         params,

@@ -38,12 +38,15 @@ class DashboardDataTests(unittest.TestCase):
                     reasoning_effort TEXT,
                     finish_reason TEXT,
                     content_filter_triggered INTEGER,
+                    token_details_json TEXT,
                     created_at TEXT
                 );
                 INSERT INTO sessions VALUES ('s1', '/tmp/example', 'example/repo', 'Test session');
                 INSERT INTO turns VALUES ('s1', 0, 'Implement the test feature');
                 INSERT INTO assistant_usage_events VALUES
-                    ('s1', 0, 'test-model', 100, 20, 50, 0, 5, 1000000000, 200, 100, 10, 'medium', 'stop', 0, '2099-01-01T00:00:00Z');
+                    ('s1', 0, 'test-model', 100, 20, 50, 0, 5, 1000000000, 200, 100, 10, 'medium', 'stop', 0,
+                     '[{"batchSize":1000000,"costPerBatch":20000000,"tokenCount":100,"tokenType":"input"},{"batchSize":1000000,"costPerBatch":120000000,"tokenCount":20,"tokenType":"output"}]',
+                     '2099-01-01T00:00:00Z');
                 """
             )
 
@@ -56,6 +59,8 @@ class DashboardDataTests(unittest.TestCase):
         self.assertEqual(metrics["summary"]["input_tokens"], 100)
         self.assertEqual(metrics["summary"]["output_tokens"], 20)
         self.assertEqual(metrics["summary"]["cache_read_tokens"], 50)
+        self.assertEqual(metrics["summary"]["input_nano_aiu"], 2000)
+        self.assertEqual(metrics["summary"]["output_nano_aiu"], 2400)
         self.assertEqual(metrics["summary"]["output_generation_speed_tps"], 100)
         self.assertEqual(metrics["models"][0]["model"], "test-model")
         self.assertEqual(metrics["models"][0]["output_generation_speed_tps"], 100)
