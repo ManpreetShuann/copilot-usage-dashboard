@@ -98,7 +98,9 @@ function renderAdvancedMetrics(summary, previous, rangeDays) {
   const cacheBase = Number(summary.input_tokens || 0) + Number(summary.cache_read_tokens || 0);
   const cacheRate = cacheBase ? (Number(summary.cache_read_tokens || 0) / cacheBase) * 100 : 0;
   const aiuPerRequest = summary.requests ? Number(summary.total_nano_aiu || 0) / summary.requests : 0;
-  const forecastDays = rangeDays === "month" ? new Date().getUTCDate() : Number(rangeDays);
+  const forecastDays = rangeDays === "month"
+    ? new Date().getUTCDate()
+    : rangeDays === "today" ? 1 : Number(rangeDays);
   const forecast = forecastDays
     ? (Number(summary.total_nano_aiu || 0) / forecastDays) * 30
     : null;

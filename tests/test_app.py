@@ -44,7 +44,7 @@ class DashboardDataTests(unittest.TestCase):
                 INSERT INTO sessions VALUES ('s1', '/tmp/example', 'example/repo', 'Test session');
                 INSERT INTO turns VALUES ('s1', 0, 'Implement the test feature');
                 INSERT INTO assistant_usage_events VALUES
-                    ('s1', 0, 'test-model', 100, 20, 50, 0, 5, 1000000000, 200, 100, 10, 'medium', 'stop', 0,
+                    ('s1', 0, 'test-model', 100, 20, 50, 0, 5, 21000000000, 200, 100, 10, 'medium', 'stop', 0,
                      '[{"batchSize":1000000,"costPerBatch":20000000,"tokenCount":100,"tokenType":"input"},{"batchSize":1000000,"costPerBatch":120000000,"tokenCount":20,"tokenType":"output"}]',
                      '2099-01-01T00:00:00Z');
                 """
@@ -82,11 +82,44 @@ class DashboardDataTests(unittest.TestCase):
 
     def test_range_parser(self):
         self.assertEqual(range_days_from_query(None), "month")
+        self.assertEqual(range_days_from_query("today"), "today")
         self.assertEqual(range_days_from_query("all"), 0)
         self.assertEqual(range_days_from_query("7"), 7)
         self.assertEqual(range_days_from_query("month"), "month")
         with self.assertRaises(ValueError):
             range_days_from_query("14")
+
+    def test_sessions_filter_to_more_than_20_aiu_only_when_needed(self):
+        with sqlite3.connect(self.db_path) as connection:
+            connection.execute("UPDATE assistant_usage_events SET total_nano_aiu = 20000000000 WHERE session_id = 's1'")
+            connection.execute("INSERT INTO sessions VALUES ('s2', '/tmp/other', 'other/repo', 'High usage session')")
+            connection.execute(
+                """
+                INSERT INTO assistant_usage_events VALUES
+                    ('s2', 0, 'test-model', 1, 1, 0, 0, 0, 20000000001, 1, 1, 1,
+                     'medium', 'stop', 0, NULL, '2099-01-02T00:00:00Z')
+                """
+            )
+
+        sessions = query_metrics(self.db_path, 0)["sessions"]
+        self.assertEqual([session["session_id"] for session in sessions], ["s2", "s1"])
+
+        with sqlite3.connect(self.db_path) as connection:
+            connection.executemany(
+                "INSERT INTO sessions VALUES (?, ?, ?, ?)",
+                [(f"s{index}", "/tmp/other", "other/repo", f"Low usage session {index}") for index in range(3, 17)],
+            )
+            connection.executemany(
+                """
+                INSERT INTO assistant_usage_events
+                VALUES (?, 0, 'test-model', 1, 1, 0, 0, 0, 1000000000, 1, 1, 1,
+                        'medium', 'stop', 0, NULL, '2099-01-03T00:00:00Z')
+                """,
+                [(f"s{index}",) for index in range(3, 17)],
+            )
+
+        sessions = query_metrics(self.db_path, 0)["sessions"]
+        self.assertEqual([session["session_id"] for session in sessions], ["s2"])
 
     def test_intent_classifier_covers_common_work_patterns(self):
         self.assertEqual(classify_intent("make the buttons purple in dark mode"), "ui_design")

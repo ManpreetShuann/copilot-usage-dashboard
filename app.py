@@ -29,6 +29,7 @@ DAILY_TOTAL_FIELDS = (
     "reasoning_tokens",
     "total_nano_aiu",
 )
+SESSION_MIN_NANO_AIU = 20_000_000_000
 
 
 def get_connection(db_path: Path) -> sqlite3.Connection:
@@ -47,6 +48,8 @@ def get_connection(db_path: Path) -> sqlite3.Connection:
 def range_days_from_query(value: str | None) -> RangeValue:
     if value in (None, ""):
         return "month"
+    if value == "today":
+        return "today"
     if value == "all":
         return 0
     if value == "month":
@@ -54,9 +57,9 @@ def range_days_from_query(value: str | None) -> RangeValue:
     try:
         days = int(value)
     except ValueError as error:
-        raise ValueError("range must be 7, 30, 90, month, or all") from error
+        raise ValueError("range must be today, 7, 30, 90, month, or all") from error
     if days not in ALLOWED_RANGES:
-        raise ValueError("range must be 7, 30, 90, month, or all")
+        raise ValueError("range must be today, 7, 30, 90, month, or all")
     return days
 
 
@@ -71,6 +74,8 @@ def period_filter(range_value: RangeValue, end: datetime | None = None) -> tuple
     period_start = (
         period_end.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         if range_value == "month"
+        else period_end.replace(hour=0, minute=0, second=0, microsecond=0)
+        if range_value == "today"
         else period_end - timedelta(days=range_value)
     )
     return (
@@ -96,6 +101,15 @@ def previous_period_filter(
             (
                 utc_value(previous_start),
                 utc_value(previous_end),
+            ),
+        )
+    if range_value == "today":
+        current_start = end.replace(hour=0, minute=0, second=0, microsecond=0)
+        return (
+            "WHERE created_at >= ? AND created_at < ?",
+            (
+                utc_value(current_start - timedelta(days=1)),
+                utc_value(current_start),
             ),
         )
     return period_filter(range_value, end - timedelta(days=range_value)) if range_value else ("", ())
@@ -233,6 +247,9 @@ def fill_daily_gaps(rows: list[sqlite3.Row], range_value: RangeValue, now: datet
     row_by_day = {row["day"]: dict(row) for row in rows}
     if range_value == "month":
         first_day = now.replace(day=1).date()
+        last_day = now.date()
+    elif range_value == "today":
+        first_day = now.date()
         last_day = now.date()
     elif range_value:
         first_day = (now - timedelta(days=range_value)).date()
@@ -411,38 +428,43 @@ def query_metrics(db_path: Path, days: RangeValue) -> dict[str, Any]:
 
         sessions = connection.execute(
             f"""
-            SELECT
-                u.session_id,
-                COALESCE(NULLIF(s.summary, ''), 'Untitled session') AS summary,
-                COALESCE(NULLIF(s.cwd, ''), NULLIF(s.repository, ''), 'Unknown') AS path,
-                COALESCE(NULLIF(s.repository, ''), 'Local session') AS repository,
-                COUNT(*) AS requests,
-                COUNT(DISTINCT strftime('%Y-%m-%d', u.created_at, 'localtime')) AS active_days,
-                GROUP_CONCAT(DISTINCT u.model) AS models,
-                COALESCE(SUM(u.input_tokens), 0) AS input_tokens,
-                COALESCE(SUM(u.output_tokens), 0) AS output_tokens,
-                COALESCE(SUM(u.reasoning_tokens), 0) AS reasoning_tokens,
-                COALESCE(SUM(u.cache_read_tokens), 0) AS cache_read_tokens,
-                COALESCE(SUM(u.cache_write_tokens), 0) AS cache_write_tokens,
-                COALESCE(SUM(u.input_tokens + u.output_tokens + u.reasoning_tokens), 0) AS tokens,
-                COALESCE(SUM(CASE WHEN u.finish_reason = 'tool_calls' THEN 1 ELSE 0 END), 0) AS tool_calls,
-                COALESCE(SUM(u.total_nano_aiu), 0) AS total_nano_aiu,
-                COALESCE(ROUND(AVG(u.duration_ms)), 0) AS avg_duration_ms,
-                COALESCE(ROUND(AVG(u.time_to_first_token_ms)), 0) AS avg_ttft_ms,
-                COALESCE(ROUND(
-                    SUM(u.output_tokens) * 1000.0 / NULLIF(SUM(u.duration_ms), 0),
-                    1
-                ), 0) AS output_generation_speed_tps,
-                MIN(u.created_at) AS first_activity,
-                MAX(u.created_at) AS last_activity
-            FROM assistant_usage_events AS u
-            JOIN sessions AS s ON s.id = u.session_id
-            {where.replace("created_at", "u.created_at")}
-            GROUP BY u.session_id, summary, path
+            WITH grouped_sessions AS (
+                SELECT
+                    u.session_id,
+                    COALESCE(NULLIF(s.summary, ''), 'Untitled session') AS summary,
+                    COALESCE(NULLIF(s.cwd, ''), NULLIF(s.repository, ''), 'Unknown') AS path,
+                    COALESCE(NULLIF(s.repository, ''), 'Local session') AS repository,
+                    COUNT(*) AS requests,
+                    COUNT(DISTINCT strftime('%Y-%m-%d', u.created_at, 'localtime')) AS active_days,
+                    GROUP_CONCAT(DISTINCT u.model) AS models,
+                    COALESCE(SUM(u.input_tokens), 0) AS input_tokens,
+                    COALESCE(SUM(u.output_tokens), 0) AS output_tokens,
+                    COALESCE(SUM(u.reasoning_tokens), 0) AS reasoning_tokens,
+                    COALESCE(SUM(u.cache_read_tokens), 0) AS cache_read_tokens,
+                    COALESCE(SUM(u.cache_write_tokens), 0) AS cache_write_tokens,
+                    COALESCE(SUM(u.input_tokens + u.output_tokens + u.reasoning_tokens), 0) AS tokens,
+                    COALESCE(SUM(CASE WHEN u.finish_reason = 'tool_calls' THEN 1 ELSE 0 END), 0) AS tool_calls,
+                    COALESCE(SUM(u.total_nano_aiu), 0) AS total_nano_aiu,
+                    COALESCE(ROUND(AVG(u.duration_ms)), 0) AS avg_duration_ms,
+                    COALESCE(ROUND(AVG(u.time_to_first_token_ms)), 0) AS avg_ttft_ms,
+                    COALESCE(ROUND(
+                        SUM(u.output_tokens) * 1000.0 / NULLIF(SUM(u.duration_ms), 0),
+                        1
+                    ), 0) AS output_generation_speed_tps,
+                    MIN(u.created_at) AS first_activity,
+                    MAX(u.created_at) AS last_activity
+                FROM assistant_usage_events AS u
+                JOIN sessions AS s ON s.id = u.session_id
+                {where.replace("created_at", "u.created_at")}
+                GROUP BY u.session_id, summary, path
+            )
+            SELECT *
+            FROM grouped_sessions
+            WHERE (SELECT COUNT(*) FROM grouped_sessions) <= 15
+               OR total_nano_aiu > ?
             ORDER BY total_nano_aiu DESC
-            LIMIT 15
             """,
-            params,
+            (*params, SESSION_MIN_NANO_AIU),
         ).fetchall()
 
         session_models = connection.execute(

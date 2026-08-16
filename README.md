@@ -29,7 +29,7 @@ make down
 
 Use `make status` to check whether it is running and `make restart` to restart it.
 
-The default database is `~/.copilot/session-store.db`. The default timeframe is the current calendar month. Available timeframes are last 7, 30, or 90 days, current calendar month, and all available data. Use another database with:
+The default database is `~/.copilot/session-store.db`. The default timeframe is the current calendar month. Available timeframes are today, last 7, 30, or 90 days, current calendar month, and all available data. Use another database with:
 
 ```bash
 python3 app.py --db /path/to/session-store.db --port 8766
