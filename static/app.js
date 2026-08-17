@@ -278,7 +278,7 @@ function renderModelCards(models, summary) {
           <div class="model-card-top">
             <span class="model-dot" style="background:${colors[index % colors.length]}"></span>
             <strong title="${escapeHtml(model.model)}">${escapeHtml(model.model)}</strong>
-            <b>${formatNumber(share)}%</b>
+            <b title="Share of total AIU">${formatNumber(share)}% credit share</b>
           </div>
           <div class="share-track"><span style="width:${share}%;background:${colors[index % colors.length]}"></span></div>
           <div class="model-stats">
