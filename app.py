@@ -32,6 +32,16 @@ DAILY_TOTAL_FIELDS = (
 SESSION_MIN_NANO_AIU = 20_000_000_000
 
 
+def session_path_sql(alias: str = "s") -> str:
+    path = f"COALESCE(NULLIF({alias}.cwd, ''), NULLIF({alias}.repository, ''), 'Unknown')"
+    worktree_marker = f"instr({path}, '.worktrees/')"
+    return (
+        f"CASE WHEN {worktree_marker} > 0 "
+        f"THEN substr({path}, 1, {worktree_marker} - 1) "
+        f"ELSE {path} END"
+    )
+
+
 def get_connection(db_path: Path) -> sqlite3.Connection:
     if not db_path.is_file():
         raise FileNotFoundError(f"Copilot database not found: {db_path}")
@@ -374,8 +384,8 @@ def query_metrics(db_path: Path, days: RangeValue) -> dict[str, Any]:
         locations = connection.execute(
             f"""
             SELECT
-                COALESCE(NULLIF(s.cwd, ''), NULLIF(s.repository, ''), 'Unknown') AS path,
-                COALESCE(NULLIF(s.repository, ''), 'Local session') AS repository,
+                {session_path_sql()} AS path,
+                MAX(COALESCE(NULLIF(s.repository, ''), 'Local session')) AS repository,
                 COUNT(*) AS requests,
                 COUNT(DISTINCT u.session_id) AS sessions,
                 COALESCE(SUM(u.input_tokens), 0) AS input_tokens,
@@ -392,7 +402,7 @@ def query_metrics(db_path: Path, days: RangeValue) -> dict[str, Any]:
             FROM assistant_usage_events AS u
             JOIN sessions AS s ON s.id = u.session_id
             {where.replace("created_at", "u.created_at")}
-            GROUP BY path, repository
+            GROUP BY path
             ORDER BY total_nano_aiu DESC
             LIMIT 20
             """,
@@ -402,7 +412,7 @@ def query_metrics(db_path: Path, days: RangeValue) -> dict[str, Any]:
         location_models = connection.execute(
             f"""
             SELECT
-                COALESCE(NULLIF(s.cwd, ''), NULLIF(s.repository, ''), 'Unknown') AS path,
+                {session_path_sql()} AS path,
                 u.model AS model,
                 COUNT(*) AS requests,
                 COALESCE(SUM(u.input_tokens), 0) AS input_tokens,
@@ -432,7 +442,7 @@ def query_metrics(db_path: Path, days: RangeValue) -> dict[str, Any]:
                 SELECT
                     u.session_id,
                     COALESCE(NULLIF(s.summary, ''), 'Untitled session') AS summary,
-                    COALESCE(NULLIF(s.cwd, ''), NULLIF(s.repository, ''), 'Unknown') AS path,
+                    {session_path_sql()} AS path,
                     COALESCE(NULLIF(s.repository, ''), 'Local session') AS repository,
                     COUNT(*) AS requests,
                     COUNT(DISTINCT strftime('%Y-%m-%d', u.created_at, 'localtime')) AS active_days,

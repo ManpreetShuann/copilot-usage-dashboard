@@ -80,6 +80,32 @@ class DashboardDataTests(unittest.TestCase):
         self.assertEqual(metrics["location_models"][0]["input_tokens"], 100)
         self.assertEqual(metrics["intent_breakdown"][0]["intent"], "coding")
 
+    def test_worktrees_accumulate_under_the_base_project(self):
+        with sqlite3.connect(self.db_path) as connection:
+            connection.execute(
+                "INSERT INTO sessions VALUES (?, ?, ?, ?)",
+                (
+                    "s2",
+                    "/tmp/example.worktrees/feature",
+                    "",
+                    "Worktree session",
+                ),
+            )
+            connection.execute(
+                """
+                INSERT INTO assistant_usage_events VALUES
+                    ('s2', 0, 'test-model', 10, 5, 0, 0, 0, 1000000000, 100, 50, 10,
+                     'medium', 'stop', 0, NULL, '2099-01-01T00:00:00Z')
+                """
+            )
+
+        metrics = query_metrics(self.db_path, 0)
+        self.assertEqual(len(metrics["locations"]), 1)
+        self.assertEqual(metrics["locations"][0]["path"], "/tmp/example")
+        self.assertEqual(metrics["locations"][0]["requests"], 2)
+        self.assertEqual(metrics["locations"][0]["sessions"], 2)
+        self.assertEqual(metrics["sessions"][1]["path"], "/tmp/example")
+
     def test_range_parser(self):
         self.assertEqual(range_days_from_query(None), "month")
         self.assertEqual(range_days_from_query("today"), "today")
