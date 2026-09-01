@@ -1,12 +1,19 @@
 import sqlite3
 import tempfile
 import unittest
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 import sys
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
-from app import classify_intent, query_metrics, range_days_from_query
+from app import (
+    classify_intent,
+    period_filter,
+    previous_period_filter,
+    query_metrics,
+    range_days_from_query,
+)
 
 
 class DashboardDataTests(unittest.TestCase):
@@ -114,6 +121,14 @@ class DashboardDataTests(unittest.TestCase):
         self.assertEqual(range_days_from_query("month"), "month")
         with self.assertRaises(ValueError):
             range_days_from_query("14")
+
+    def test_month_period_uses_utc_billing_boundaries(self):
+        local_end = datetime(2026, 9, 1, 14, 10, tzinfo=timezone(timedelta(hours=5, minutes=30)))
+        _, params = period_filter("month", local_end)
+        self.assertEqual(params, ("2026-09-01T00:00:00.000Z", "2026-09-01T08:40:00.000Z"))
+
+        _, previous_params = previous_period_filter("month", local_end)
+        self.assertEqual(previous_params, ("2026-08-01T00:00:00.000Z", "2026-09-01T00:00:00.000Z"))
 
     def test_sessions_filter_to_more_than_20_aiu_only_when_needed(self):
         with sqlite3.connect(self.db_path) as connection:

@@ -81,13 +81,13 @@ def period_filter(range_value: RangeValue, end: datetime | None = None) -> tuple
     if range_value == 0:
         return "", ()
     period_end = (end or datetime.now().astimezone()).astimezone()
-    period_start = (
-        period_end.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        if range_value == "month"
-        else period_end.replace(hour=0, minute=0, second=0, microsecond=0)
-        if range_value == "today"
-        else period_end - timedelta(days=range_value)
-    )
+    if range_value == "month":
+        period_end = period_end.astimezone(timezone.utc)
+        period_start = period_end.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    elif range_value == "today":
+        period_start = period_end.replace(hour=0, minute=0, second=0, microsecond=0)
+    else:
+        period_start = period_end - timedelta(days=range_value)
     return (
         "WHERE created_at >= ? AND created_at < ?",
         (
@@ -103,7 +103,9 @@ def previous_period_filter(
 ) -> tuple[str, tuple[str, ...]]:
     end = end.astimezone()
     if range_value == "month":
-        current_start = end.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        current_start = end.astimezone(timezone.utc).replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
         previous_end = current_start
         previous_start = (current_start - timedelta(days=1)).replace(day=1)
         return (
