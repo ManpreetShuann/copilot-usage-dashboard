@@ -56,6 +56,11 @@ function totalTokens(row) {
     + Number(row.reasoning_tokens || 0);
 }
 
+function cacheEfficiency(inputTokens, cacheReadTokens) {
+  const cacheBase = Number(inputTokens || 0) + Number(cacheReadTokens || 0);
+  return cacheBase ? (Number(cacheReadTokens || 0) / cacheBase) * 100 : 0;
+}
+
 function projectNameFromPath(path) {
   const normalizedPath = String(path).replace(/[\\/]+$/, "");
   return normalizedPath.split(/[\\/]/).pop() || path;
@@ -95,8 +100,7 @@ function renderSummary(summary) {
 }
 
 function renderAdvancedMetrics(summary, previous, rangeDays) {
-  const cacheBase = Number(summary.input_tokens || 0) + Number(summary.cache_read_tokens || 0);
-  const cacheRate = cacheBase ? (Number(summary.cache_read_tokens || 0) / cacheBase) * 100 : 0;
+  const cacheRate = cacheEfficiency(summary.input_tokens, summary.cache_read_tokens);
   const aiuPerRequest = summary.requests ? Number(summary.total_nano_aiu || 0) / summary.requests : 0;
   const forecastDays = rangeDays === "month"
     ? new Date().getUTCDate()
@@ -290,6 +294,7 @@ function renderModelCards(models, summary) {
             <span><b>${formatTokens(model.reasoning_tokens)}</b> reasoning</span>
             <span><b>${formatTokens(model.cache_read_tokens)}</b> cache read</span>
             <span><b>${formatTokens(model.cache_write_tokens)}</b> cache write</span>
+            <span><b>${formatNumber(cacheEfficiency(model.input_tokens, model.cache_read_tokens))}%</b> cache efficiency</span>
             <span><b>${formatNumber(model.avg_duration_ms)} ms</b> latency</span>
             <span><b>${formatNumber(model.output_generation_speed_tps)} tokens/s</b> generation</span>
           </div>
