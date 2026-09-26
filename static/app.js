@@ -1,4 +1,7 @@
 const range = document.querySelector("#range");
+const customRange = document.querySelector("#custom-range");
+const startDate = document.querySelector("#start-date");
+const endDate = document.querySelector("#end-date");
 const trendMetric = document.querySelector("#trend-metric");
 const projectSelect = document.querySelector("#project-select");
 const sessionSearch = document.querySelector("#session-search");
@@ -10,6 +13,8 @@ const number = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 const integer = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 });
 const colors = ["#bb9af7", "#7aa2f7", "#2ac3de", "#7dcfff", "#9ece6a", "#e0af68", "#ff9e64", "#f7768e", "#ff007c", "#1abc9c"];
 let latestPayload;
+let loadedRange;
+let loadId = 0;
 
 function setView(view) {
   document.querySelectorAll("[data-view]").forEach((element) => {
@@ -622,18 +627,28 @@ function exportCsv() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `copilot-usage-${range.value}.csv`;
+  link.download = `copilot-usage-${loadedRange}.csv`;
   link.click();
   URL.revokeObjectURL(url);
 }
 
 async function load() {
+  const currentLoad = ++loadId;
   errorBox.hidden = true;
   try {
-    const response = await fetch(`/api/metrics?range=${encodeURIComponent(range.value)}`);
+    const selectedRange = range.value === "custom"
+      ? `custom-${startDate.value}-${endDate.value}` : range.value;
+    const query = new URLSearchParams({ range: range.value });
+    if (range.value === "custom") {
+      query.set("start", startDate.value);
+      query.set("end", endDate.value);
+    }
+    const response = await fetch(`/api/metrics?${query}`);
     const payload = await response.json();
+    if (currentLoad !== loadId) return;
     if (!response.ok) throw new Error(payload.error || "Unable to load metrics.");
     latestPayload = payload;
+    loadedRange = selectedRange;
     window.latestDaily = payload.daily;
     renderSummary(payload.summary);
     renderAdvancedMetrics(payload.summary, payload.previous_summary, payload.range_days);
@@ -651,12 +666,31 @@ async function load() {
     document.querySelector("#updated").textContent =
       `Updated ${new Date(payload.generated_at).toLocaleString()}`;
   } catch (error) {
+    if (currentLoad !== loadId) return;
     errorBox.textContent = error.message;
     errorBox.hidden = false;
   }
 }
 
-range.addEventListener("change", load);
+range.addEventListener("change", () => {
+  customRange.hidden = range.value !== "custom";
+  if (customRange.hidden) load();
+  else {
+    ++loadId;
+    errorBox.hidden = true;
+    startDate.focus();
+  }
+});
+customRange.addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (startDate.value > endDate.value) {
+    ++loadId;
+    errorBox.textContent = "Start date must be on or before end date.";
+    errorBox.hidden = false;
+    return;
+  }
+  load();
+});
 trendMetric.addEventListener("change", () => {
   if (window.latestDaily) renderDaily(window.latestDaily);
 });

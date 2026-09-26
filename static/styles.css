@@ -118,6 +118,7 @@ body {
 .header {
   align-items: end;
   display: flex;
+  flex-wrap: wrap;
   gap: 16px;
   justify-content: space-between;
   margin-bottom: 0;
@@ -157,8 +158,20 @@ h1 {
 h2 { font-size: 15px; font-weight: 650; letter-spacing: -.01em; margin-bottom: 4px; }
 .muted, .card span, .repo-row span, .footer { color: var(--muted); }
 
-.header .header-controls { align-items: end; display: flex; gap: 12px; }
+.header .header-controls { align-items: end; display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; }
 .range-control { color: var(--muted); display: grid; font-size: 11px; font-weight: 600; gap: 6px; letter-spacing: .04em; text-transform: uppercase; }
+.custom-range { align-items: end; display: flex; flex-wrap: wrap; gap: 12px; }
+.range-control input {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  color-scheme: inherit;
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+}
+.range-control input:focus-visible { border-color: var(--mauve); outline: 2px solid var(--mauve); }
 
 select {
   appearance: none;
@@ -193,7 +206,7 @@ select:focus-visible, .secondary-button:focus-visible, .nav-tab:focus-visible {
   padding: 9px 14px;
   transition: border-color .15s var(--ease), color .15s var(--ease), transform .1s var(--ease), background .15s var(--ease);
 }
-.secondary-button::before {
+#export::before {
   content: "⇩";
   font-size: 12px;
   transform: translateY(-1px);
@@ -596,6 +609,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--mauve) 6%, transparent); }
   .session-search input { min-width: 0; width: 100%; }
   .header { align-items: start; flex-direction: column; }
   .header .header-controls { flex-wrap: wrap; width: 100%; }
+  .custom-range { width: 100%; }
   .cards { grid-template-columns: repeat(2, 1fr); }
   .metric-strip { grid-template-columns: 1fr 1fr; }
   .performance-stats { grid-template-columns: 1fr; }

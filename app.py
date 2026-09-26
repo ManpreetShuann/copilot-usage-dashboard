@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parent
 STATIC_DIR = ROOT / "static"
 DEFAULT_DB = Path.home() / ".copilot" / "session-store.db"
 ALLOWED_RANGES = {7, 30, 90, 0}
-RangeValue = int | str
+RangeValue = int | str | tuple[date, date]
 DAILY_TOTAL_FIELDS = (
     "requests",
     "input_tokens",
@@ -73,6 +73,19 @@ def range_days_from_query(value: str | None) -> RangeValue:
     return days
 
 
+def custom_range_from_query(start: str | None, end: str | None) -> tuple[date, date]:
+    if not start or not end or not all(
+        re.fullmatch(r"\d{4}-\d{2}-\d{2}", value) for value in (start, end)
+    ):
+        raise ValueError("custom range requires start and end dates in YYYY-MM-DD format")
+    start_date, end_date = date.fromisoformat(start), date.fromisoformat(end)
+    if start_date > end_date:
+        raise ValueError("start date must be on or before end date")
+    if end_date == date.max:
+        raise ValueError("end date must be before 9999-12-31")
+    return start_date, end_date
+
+
 def utc_value(value: datetime) -> str:
     return value.astimezone(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
@@ -80,6 +93,15 @@ def utc_value(value: datetime) -> str:
 def period_filter(range_value: RangeValue, end: datetime | None = None) -> tuple[str, tuple[str, ...]]:
     if range_value == 0:
         return "", ()
+    if isinstance(range_value, tuple):
+        start_date, end_date = range_value
+        return (
+            "WHERE created_at >= ? AND created_at < ?",
+            (
+                utc_value(datetime.combine(start_date, datetime.min.time()).astimezone()),
+                utc_value(datetime.combine(end_date + timedelta(days=1), datetime.min.time()).astimezone()),
+            ),
+        )
     period_end = (end or datetime.now().astimezone()).astimezone()
     if range_value == "month":
         period_end = period_end.astimezone(timezone.utc)
@@ -101,6 +123,17 @@ def previous_period_filter(
     range_value: RangeValue,
     end: datetime,
 ) -> tuple[str, tuple[str, ...]]:
+    if isinstance(range_value, tuple):
+        start_date, end_date = range_value
+        duration = (end_date - start_date).days + 1
+        previous_end = datetime.combine(start_date, datetime.min.time()).astimezone()
+        return (
+            "WHERE created_at >= ? AND created_at < ?",
+            (
+                utc_value(datetime.combine(start_date - timedelta(days=duration), datetime.min.time()).astimezone()),
+                utc_value(previous_end),
+            ),
+        )
     end = end.astimezone()
     if range_value == "month":
         current_start = end.astimezone(timezone.utc).replace(
@@ -253,11 +286,13 @@ def summary_query(
 
 
 def fill_daily_gaps(rows: list[sqlite3.Row], range_value: RangeValue, now: datetime) -> list[dict[str, Any]]:
-    if not rows:
+    if not rows and not isinstance(range_value, tuple):
         return []
 
     row_by_day = {row["day"]: dict(row) for row in rows}
-    if range_value == "month":
+    if isinstance(range_value, tuple):
+        first_day, last_day = range_value
+    elif range_value == "month":
         first_day = now.replace(day=1).date()
         last_day = now.date()
     elif range_value == "today":
@@ -532,7 +567,7 @@ def query_metrics(db_path: Path, days: RangeValue) -> dict[str, Any]:
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "range_days": days,
+        "range_days": (days[1] - days[0]).days + 1 if isinstance(days, tuple) else days,
         "summary": row_dict(summary),
         "previous_summary": row_dict(previous_summary) if previous_summary else None,
         "models": [row_dict(row) for row in models],
@@ -566,7 +601,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
     def send_metrics(self, query: dict[str, list[str]]) -> None:
         value = query.get("range", [None])[0]
         try:
-            metrics = query_metrics(self.db_path, range_days_from_query(value))
+            days = custom_range_from_query(
+                query.get("start", [None])[0], query.get("end", [None])[0]
+            ) if value == "custom" else range_days_from_query(value)
+        except ValueError as error:
+            self.send_json({"error": str(error)}, status=400)
+            return
+        try:
+            metrics = query_metrics(self.db_path, days)
         except (FileNotFoundError, sqlite3.Error, ValueError, OSError) as error:
             self.send_json({"error": str(error)}, status=500)
             return

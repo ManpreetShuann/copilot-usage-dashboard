@@ -28,8 +28,20 @@
             <option value="90">Last 90 days</option>
             <option value="month" selected>Current month</option>
             <option value="all">All available</option>
+            <option value="custom">Custom dates</option>
           </select>
         </label>
+        <form id="custom-range" class="custom-range" hidden>
+          <label class="range-control">
+            <span>Start date</span>
+            <input id="start-date" type="date" required>
+          </label>
+          <label class="range-control">
+            <span>End date</span>
+            <input id="end-date" type="date" required>
+          </label>
+          <button class="secondary-button" type="submit">Apply</button>
+        </form>
         <button id="export" class="secondary-button" type="button">Export CSV</button>
       </div>
     </header>

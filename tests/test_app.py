@@ -1,7 +1,7 @@
 import sqlite3
 import tempfile
 import unittest
-from datetime import datetime, timezone, timedelta
+from datetime import date, datetime, time, timezone, timedelta
 from pathlib import Path
 
 import sys
@@ -9,10 +9,12 @@ import sys
 sys.path.insert(0, str(Path(__file__).parents[1]))
 from app import (
     classify_intent,
+    custom_range_from_query,
     period_filter,
     previous_period_filter,
     query_metrics,
     range_days_from_query,
+    utc_value,
 )
 
 
@@ -121,6 +123,47 @@ class DashboardDataTests(unittest.TestCase):
         self.assertEqual(range_days_from_query("month"), "month")
         with self.assertRaises(ValueError):
             range_days_from_query("14")
+
+    def test_custom_range_requires_valid_ordered_dates(self):
+        self.assertEqual(custom_range_from_query("2099-01-01", "2099-01-03"), (date(2099, 1, 1), date(2099, 1, 3)))
+        self.assertEqual(custom_range_from_query("2099-01-01", "2099-01-01"), (date(2099, 1, 1), date(2099, 1, 1)))
+        for start, end in [
+            (None, "2099-01-01"), ("", "2099-01-01"),
+            ("2099-01-01", None), ("2099-02-30", "2099-03-01"),
+            ("20990101", "2099-01-02"), ("2099-01-03", "2099-01-01"),
+        ]:
+            with self.subTest(start=start, end=end), self.assertRaises(ValueError):
+                custom_range_from_query(start, end)
+
+    def test_custom_range_includes_both_dates_and_compares_previous_window(self):
+        selected = custom_range_from_query("2099-01-01", "2099-01-02")
+        _, (start, end) = period_filter(selected)
+        _, (previous_start, previous_end) = previous_period_filter(selected, datetime.now().astimezone())
+        self.assertEqual(previous_end, start)
+        self.assertEqual(previous_start, utc_value(datetime.combine(date(2098, 12, 30), time.min).astimezone()))
+        second_day = utc_value(datetime.combine(date(2099, 1, 2), time.min).astimezone())
+
+        with sqlite3.connect(self.db_path) as connection:
+            connection.execute("UPDATE assistant_usage_events SET created_at = ? WHERE session_id = 's1'", (start,))
+            connection.executemany(
+                """
+                INSERT INTO assistant_usage_events VALUES
+                    ('s1', 0, 'test-model', 1, 1, 0, 0, 0, 1000000000, 1, 1, 1,
+                     'medium', 'stop', 0, NULL, ?)
+                """,
+                [(previous_start,), (second_day,), (end,)],
+            )
+        metrics = query_metrics(self.db_path, selected)
+        self.assertEqual(metrics["summary"]["requests"], 2)
+        self.assertEqual(metrics["previous_summary"]["requests"], 1)
+        self.assertEqual(metrics["range_days"], 2)
+        self.assertEqual([day["day"] for day in metrics["daily"]], ["2099-01-01", "2099-01-02"])
+
+    def test_custom_range_fills_days_without_usage(self):
+        metrics = query_metrics(self.db_path, custom_range_from_query("2099-01-03", "2099-01-04"))
+        self.assertEqual(metrics["summary"]["requests"], 0)
+        self.assertEqual([day["day"] for day in metrics["daily"]], ["2099-01-03", "2099-01-04"])
+        self.assertTrue(all(day["requests"] == 0 for day in metrics["daily"]))
 
     def test_month_period_uses_utc_billing_boundaries(self):
         local_end = datetime(2026, 9, 1, 14, 10, tzinfo=timezone(timedelta(hours=5, minutes=30)))
