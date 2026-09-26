@@ -3,6 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    const savedTheme = localStorage.getItem("theme");
+    document.documentElement.dataset.themePreference =
+      savedTheme === "light" || savedTheme === "dark" ? savedTheme : "system";
+    document.documentElement.dataset.theme =
+      document.documentElement.dataset.themePreference === "system"
+        ? (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark")
+        : document.documentElement.dataset.themePreference;
+  </script>
   <link rel="icon" type="image/svg+xml" href="/logo.svg">
   <title>Copilot Usage Dashboard</title>
   <link rel="stylesheet" href="/styles.css">
@@ -18,20 +27,28 @@
           <p class="muted">Understand which models, projects, and token types drive your usage.</p>
         </div>
       </div>
+      <div class="theme-picker" role="group" aria-label="Theme">
+        <button class="theme-option" type="button" data-theme-option="system" aria-label="System theme" title="System (follow device)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        </button>
+        <button class="theme-option" type="button" data-theme-option="light" aria-label="Light theme" title="Light theme">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
+        </button>
+        <button class="theme-option" type="button" data-theme-option="dark" aria-label="Dark theme" title="Dark theme">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8a8.5 8.5 0 1 0 11.6 11.6Z"/></svg>
+        </button>
+      </div>
       <div class="header-controls">
         <div class="timeframe-picker">
-          <label class="range-control">
-            <span>Timeframe</span>
-            <select id="range">
-              <option value="today">Today</option>
-              <option value="7">Last 7 days</option>
-              <option value="30">Last 30 days</option>
-              <option value="90">Last 90 days</option>
-              <option value="month" selected>Current month</option>
-              <option value="all">All available</option>
-              <option value="custom">Custom dates</option>
-            </select>
-          </label>
+          <select id="range" aria-label="Timeframe" title="Timeframe">
+            <option value="today">Today</option>
+            <option value="7">Last 7 days</option>
+            <option value="30">Last 30 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="month" selected>Current month</option>
+            <option value="all">All available</option>
+            <option value="custom">Custom dates</option>
+          </select>
           <button id="custom-summary" class="range-chip" type="button" hidden></button>
           <form id="custom-range" class="custom-range" hidden>
             <div class="custom-range-header">

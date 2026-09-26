@@ -9,6 +9,8 @@ const trendMetric = document.querySelector("#trend-metric");
 const projectSelect = document.querySelector("#project-select");
 const sessionSearch = document.querySelector("#session-search");
 const exportButton = document.querySelector("#export");
+const themeOptions = document.querySelectorAll("[data-theme-option]");
+const systemTheme = matchMedia("(prefers-color-scheme: light)");
 const viewTabs = document.querySelectorAll("[data-view-target]");
 const errorBox = document.querySelector("#error");
 
@@ -18,6 +20,27 @@ const colors = ["#bb9af7", "#7aa2f7", "#2ac3de", "#7dcfff", "#9ece6a", "#e0af68"
 let latestPayload;
 let loadedRange;
 let loadId = 0;
+
+function setTheme(theme) {
+  document.documentElement.dataset.themePreference = theme;
+  document.documentElement.dataset.theme = theme === "system"
+    ? (systemTheme.matches ? "light" : "dark") : theme;
+  themeOptions.forEach((option) => {
+    option.setAttribute("aria-pressed", String(option.dataset.themeOption === theme));
+  });
+}
+
+setTheme(document.documentElement.dataset.themePreference);
+themeOptions.forEach((option) => {
+  option.addEventListener("click", () => {
+    const theme = option.dataset.themeOption;
+    localStorage.setItem("theme", theme);
+    setTheme(theme);
+  });
+});
+systemTheme.addEventListener("change", () => {
+  if (document.documentElement.dataset.themePreference === "system") setTheme("system");
+});
 
 function setView(view) {
   document.querySelectorAll("[data-view]").forEach((element) => {

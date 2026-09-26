@@ -2,7 +2,7 @@
 
 A small, local, read-only dashboard for usage telemetry stored by Copilot CLI.
 
-The interface uses the Tokyo Night color palette.
+The interface uses the Tokyo Night color palette. Use the icon switcher in the header to choose System (follows your device), Light, or Dark; hover over an icon to see its name. Your selection is saved in this browser.
 
 ## Requirements
 
