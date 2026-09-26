@@ -2,6 +2,9 @@ const range = document.querySelector("#range");
 const customRange = document.querySelector("#custom-range");
 const startDate = document.querySelector("#start-date");
 const endDate = document.querySelector("#end-date");
+const customSummary = document.querySelector("#custom-summary");
+const customCancel = document.querySelector("#custom-cancel");
+const customClose = document.querySelector("#custom-close");
 const trendMetric = document.querySelector("#trend-metric");
 const projectSelect = document.querySelector("#project-select");
 const sessionSearch = document.querySelector("#session-search");
@@ -649,6 +652,8 @@ async function load() {
     if (!response.ok) throw new Error(payload.error || "Unable to load metrics.");
     latestPayload = payload;
     loadedRange = selectedRange;
+    customSummary.hidden = range.value !== "custom";
+    if (range.value === "custom") customSummary.textContent = formatDateRange(startDate.value, endDate.value);
     window.latestDaily = payload.daily;
     renderSummary(payload.summary);
     renderAdvancedMetrics(payload.summary, payload.previous_summary, payload.range_days);
@@ -672,14 +677,62 @@ async function load() {
   }
 }
 
+function isoDate(value) {
+  const local = new Date(value.getTime() - value.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 10);
+}
+
+function formatDateRange(start, end) {
+  const startValue = new Date(`${start}T00:00`);
+  const endValue = new Date(`${end}T00:00`);
+  const sameYear = startValue.getFullYear() === endValue.getFullYear()
+    && endValue.getFullYear() === new Date().getFullYear();
+  const options = sameYear ? { month: "short", day: "numeric" } : { month: "short", day: "numeric", year: "numeric" };
+  return start === end
+    ? startValue.toLocaleDateString(undefined, options)
+    : `${startValue.toLocaleDateString(undefined, options)} – ${endValue.toLocaleDateString(undefined, options)}`;
+}
+
+function openCustomRange() {
+  const today = new Date();
+  startDate.max = endDate.max = isoDate(today);
+  if (!endDate.value) endDate.value = isoDate(today);
+  if (!startDate.value) startDate.value = isoDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6));
+  endDate.min = startDate.value;
+  customRange.hidden = false;
+  startDate.focus();
+}
+
+function cancelCustomRange() {
+  if (customRange.hidden) return;
+  customRange.hidden = true;
+  if (!loadedRange?.startsWith("custom-")) range.value = loadedRange || "month";
+}
+
 range.addEventListener("change", () => {
-  customRange.hidden = range.value !== "custom";
-  if (customRange.hidden) load();
-  else {
+  if (range.value === "custom") {
     ++loadId;
     errorBox.hidden = true;
-    startDate.focus();
+    openCustomRange();
+    return;
   }
+  customRange.hidden = true;
+  load();
+});
+customSummary.addEventListener("click", () => {
+  if (customRange.hidden) openCustomRange();
+  else cancelCustomRange();
+});
+customCancel.addEventListener("click", cancelCustomRange);
+customClose.addEventListener("click", cancelCustomRange);
+startDate.addEventListener("change", () => {
+  endDate.min = startDate.value;
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") cancelCustomRange();
+});
+document.addEventListener("mousedown", (event) => {
+  if (!event.target.closest(".timeframe-picker")) cancelCustomRange();
 });
 customRange.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -689,6 +742,7 @@ customRange.addEventListener("submit", (event) => {
     errorBox.hidden = false;
     return;
   }
+  customRange.hidden = true;
   load();
 });
 trendMetric.addEventListener("change", () => {
